@@ -3321,7 +3321,8 @@ function TeamDebateRoom({
 
     (async () => {
       try {
-        setMeetingReady(false);
+        // Do NOT setMeetingReady(false) here — re-locking inside async
+        // causes stuck loader on React StrictMode double-mount
         activeAudioRef.current?.pause();
         activeAudioRef.current = null;
         setAiIsSpeaking(false);
@@ -3338,7 +3339,11 @@ function TeamDebateRoom({
           sessionId: config.sessionId,
           hasAudio: Boolean(audio?.dataUrl),
         });
-        if (cancelled || playbackToken !== greetingPlaybackTokenRef.current) return;
+        // Always unlock page if cancelled — never leave loader stuck
+        if (cancelled || playbackToken !== greetingPlaybackTokenRef.current) {
+          setMeetingReady(true);
+          return;
+        }
         if (!audio?.dataUrl) {
           setMeetingReady(true);
           console.log("[LOADER] Meeting ready", {
@@ -3348,7 +3353,11 @@ function TeamDebateRoom({
           return;
         }
         await preloadAudioDataUrl(audio.dataUrl);
-        if (cancelled || playbackToken !== greetingPlaybackTokenRef.current) return;
+        // Always unlock page if cancelled after preload
+        if (cancelled || playbackToken !== greetingPlaybackTokenRef.current) {
+          setMeetingReady(true);
+          return;
+        }
         setMeetingReady(true);
         console.log("[LOADER] Meeting ready", {
           sessionId: config.sessionId,
@@ -4546,7 +4555,8 @@ function LiveAIDebateRoom({
 
     (async () => {
       try {
-        setMeetingReady(false);
+        // Do NOT setMeetingReady(false) here — it was already set false on init
+        // and re-locking inside async causes issues on React StrictMode double-mount
         activeAudioRef.current?.pause();
         activeAudioRef.current = null;
         setAiLocked(true);
@@ -4560,7 +4570,11 @@ function LiveAIDebateRoom({
         console.log("[TTS] Greeting synthesis result", {
           hasAudio: Boolean(audio?.dataUrl),
         });
-        if (cancelled || playbackToken !== greetingPlaybackTokenRef.current) return;
+        // If cancelled (StrictMode double-mount), still unlock the page
+        if (cancelled || playbackToken !== greetingPlaybackTokenRef.current) {
+          setMeetingReady(true);
+          return;
+        }
         addMsg("AI Debater", 1, text);
         if (!audio?.dataUrl) {
           setMeetingReady(true);
@@ -4572,7 +4586,11 @@ function LiveAIDebateRoom({
           return;
         }
         await preloadAudioDataUrl(audio.dataUrl);
-        if (cancelled || playbackToken !== greetingPlaybackTokenRef.current) return;
+        // If cancelled after preload, still unlock the page
+        if (cancelled || playbackToken !== greetingPlaybackTokenRef.current) {
+          setMeetingReady(true);
+          return;
+        }
         setMeetingReady(true);
         console.log("[LOADER] Meeting ready", {
           mode: "ai",
