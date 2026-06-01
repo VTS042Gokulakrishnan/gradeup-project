@@ -1727,7 +1727,20 @@ export default function AITutorModern() {
 
   const highlightTextSync = useCallback(
     (text: string) => {
-      const words = text.split(/\s+/).filter((w) => w.length > 0);
+      // Strip markdown before splitting — must match renderHighlightedText's stripMarkdown
+    const cleanForHighlight = text
+      .replace(/#{1,6}\s+/g, "")
+      .replace(/\*\*(.*?)\*\*/g, "$1")
+      .replace(/\*(.*?)\*/g, "$1")
+      .replace(/`{1,3}(.*?)`{1,3}/g, "$1")
+      .replace(/~~(.*?)~~/g, "$1")
+      .replace(/^\s*[-*+]\s+/gm, "")
+      .replace(/^\s*\d+\.\s+/gm, "")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .replace(/\n{2,}/g, " ")
+      .replace(/\n/g, " ")
+      .trim();
+    const words = cleanForHighlight.split(/\s+/).filter((w) => w.length > 0);
       setResponseWords(words);
       setCurrentWordIndex(-1);
       if (!words.length) return;
@@ -1961,12 +1974,16 @@ export default function AITutorModern() {
         throw new Error("Please select a unit before asking the AI Tutor.");
       }
 
+      // Use ref (sync) not state (async) — ensures same conversationId
+      // is sent on every message within the same session even if React
+      // hasn't flushed the setCurrentChatId state update yet.
+      const activeConversationId = currentChatIdRef.current || currentChatId || undefined;
       const data = await askTutor({
         unitId: selectedUnitId,
-        candidateId: candidateContext.candidateId, 
+        candidateId: candidateContext.candidateId,
         candidateName: candidateContext.candidateName,
         query: userMsg.content,
-     conversationId: currentChatId || undefined,
+        conversationId: activeConversationId,
         limit: 5,
       });
       const assistantText =
@@ -2001,7 +2018,7 @@ if (resolvedConversationId) {
 }
       setMessages((prev) => [...prev, assistantMsg]);
       await loadConversationList();
-      setTimeout(() => speakText(assistantText), 0);
+      // Auto-speak removed — user triggers reading via the speaker button manually.
     } catch (err) {
       // ← KEY FIX: show error inline, do NOT reset chat or start new one
       setChatError(
@@ -2139,11 +2156,32 @@ const startNewChat = () => {
   };
 
   const renderHighlightedText = (text: string) => {
-    if (!responseWords.length || currentWordIndex === -1)
-      return <span>{text}</span>;
-    const words = text.split(/\s+/);
+    // Strip markdown syntax so raw symbols don't show during reading.
+    // We render FormattedAIContent underneath and overlay word highlight on top.
+    const stripMarkdown = (raw: string) =>
+      raw
+        .replace(/#{1,6}\s+/g, "")          // ### headings
+        .replace(/\*\*(.*?)\*\*/g, "$1")    // **bold**
+        .replace(/\*(.*?)\*/g, "$1")        // *italic*
+        .replace(/`{1,3}(.*?)`{1,3}/g, "$1") // `code`
+        .replace(/~~(.*?)~~/g, "$1")        // ~~strikethrough~~
+        .replace(/^\s*[-*+]\s+/gm, "")     // bullet points
+        .replace(/^\s*\d+\.\s+/gm, "")     // numbered lists
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // [link](url)
+        .replace(/\n{2,}/g, " ")
+        .replace(/\n/g, " ")
+        .trim();
+
+    const cleanText = stripMarkdown(text);
+    const words = cleanText.split(/\s+/).filter(Boolean);
+
+    if (!responseWords.length || currentWordIndex === -1) {
+      // Not yet highlighting — show fully formatted content
+      return <FormattedAIContent value={text} />;
+    }
+
     return (
-      <span>
+      <span style={{ lineHeight: 1.7, fontSize: 13.5 }}>
         {words.map((word, i) => (
           <span
             key={i}
@@ -2153,7 +2191,9 @@ const startNewChat = () => {
                     background: "linear-gradient(135deg,#fef3c7,#fde68a)",
                     borderRadius: 3,
                     padding: "0 2px",
-                    transition: "all .3s",
+                    color: "#1a1a1a",
+                    fontWeight: 600,
+                    transition: "all .15s",
                   }
                 : {}
             }
@@ -2741,9 +2781,24 @@ const startNewChat = () => {
                       {message.type === "assistant" && (
                         <button
                           className="at-speak-btn"
-                          onClick={() => speakText(message.content)}
-                          disabled={isSpeaking}
-                          title="Read aloud"
+                          onClick={() => {
+                            // If this message is currently being spoken — stop it.
+                            // Otherwise start speaking it.
+                            if (
+                              isSpeaking &&
+                              messages[messages.length - 1]?.id === message.id
+                            ) {
+                              stopSpeaking();
+                            } else {
+                              speakText(message.content);
+                            }
+                          }}
+                          title={
+                            isSpeaking &&
+                            messages[messages.length - 1]?.id === message.id
+                              ? "Stop reading"
+                              : "Read aloud"
+                          }
                         >
                           {isSpeaking &&
                           messages[messages.length - 1]?.id === message.id ? (
