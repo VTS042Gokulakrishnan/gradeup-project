@@ -1754,7 +1754,7 @@ function Tile({
           className="tile-turn"
           style={{ background: "rgba(99,102,241,.88)" }}
         >
-          🎙 Your Turn Soon
+          🎙 Your Turn Unmute & speak
         </div>
       )}
       {p.isAITyping && (
@@ -5623,9 +5623,9 @@ function LiveAIDebateRoom({
                 isLocal: true,
                 isHost: true,
                 isStudent: true,
-                micMuted: whoTurn !== "you" || aiLocked,
+                micMuted: !speechRecording,
                 camOn: false,
-                isSpeaking: userIsSpeaking,
+                isSpeaking: userIsSpeaking && speechRecording,
                 handRaised: false,
                 isMyTurn: whoTurn === "you" && !aiLocked,
                 avatarColor: COLORS[0],
@@ -5746,8 +5746,7 @@ function LiveAIDebateRoom({
                         className={`chat-bubble ${message.senderId === 0 ? "bubble-own" : "bubble-o"}`}
                       >
                         {message.text}
-                        {/*<FormattedAIContent content={message.text} />  */}
-                        
+                        {/* <FormattedAIContent content={message.text} /> */}
                       </div>
                     </div>
                   </div>
@@ -10031,15 +10030,15 @@ useEffect(() => {
       params.get("session") ||
       params.get("room") ||
       "";
+    // Only handle deep-link join scenario — never fire on normal end debate flow.
+    // Normal end: onEnd handler already sets result + screen directly.
+    // Without this guard, this effect wipes result and resets screen to "setup".
+    if (!linkedSessionId) return;
     setResult(null);
     clearConfig();
-    if (linkedSessionId) {
-      setEntrySessionId(linkedSessionId);
-      setScreen("entry");
-      return;
-    }
-    clearScreen();
-  }, [clearConfig, clearScreen, screen, setResult, setScreen]);
+    setEntrySessionId(linkedSessionId);
+    setScreen("entry");
+  }, [clearConfig, screen, setEntrySessionId, setResult, setScreen]);
 
   useEffect(() => {
     if (screen !== "entry" || !showEntryMicModal) return;
@@ -10599,12 +10598,9 @@ useEffect(() => {
               if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
               setConfig(null);
               setResult(res);
-              setScreen("results-loading");
-              const delay = 5000 + Math.floor(Math.random() * 5000);
-              resultTimerRef.current = setTimeout(() => {
-                setScreen("results");
-                resultTimerRef.current = null;
-              }, delay);
+              // Go directly to results — end API already returned data.
+              // The random 5-10s delay was wiping result via the results-loading useEffect.
+              setScreen("results");
             }}
           />
         )}
