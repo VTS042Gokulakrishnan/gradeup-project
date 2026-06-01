@@ -4743,6 +4743,12 @@ function LiveAIDebateRoom({
   const speechCaptureLockRef = useRef(false);
   const speechPlaybackTokenRef = useRef(0);
   const greetingPlaybackTokenRef = useRef(0);
+  // Auto start/stop refs — startSpeechCaptureRef lets AI callbacks call the function
+  // without circular deps; autoSilenceIntervalRef tracks the 8s silence timer
+  const startSpeechCaptureRef = useRef<(() => void) | null>(null);
+  const autoSilenceIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoSilenceSpeechDetectedRef = useRef(false);
+  const autoSilenceCounterRef = useRef(0);
   const activeSpeakerId = whoTurn === "you" ? 0 : 1;
   const hardCleanupRef = useRef(false);
 
@@ -5067,15 +5073,16 @@ function LiveAIDebateRoom({
               reason: "playback-ended",
               sessionId: config.sessionId,
             });
-            // Mute mic while handing turn back — user must click Start Speaking
-            const _localStream = config.stream instanceof MediaStream ? config.stream : null;
-            const _audioTrack = _localStream?.getAudioTracks?.()[0];
-            if (_audioTrack) _audioTrack.enabled = false;
             setAiLocked(false);
             setWhoTurn("you");
-            ttsDebug("[TURN] next speaker assigned — waiting for user to click Start Speaking", {
+            ttsDebug("[TURN] auto-starting speech capture after AI greeting", {
               activeSpeakerId: 0,
             });
+            // Auto-trigger startSpeechCapture — same as user clicking Start Speaking.
+            // Re-enables mic track and starts 8s silence monitor automatically.
+            setTimeout(() => {
+              startSpeechCaptureRef.current?.();
+            }, 300);
           },
         );
       } catch (error) {
@@ -5128,6 +5135,13 @@ function LiveAIDebateRoom({
   }
 
   function stopSpeechCapture() {
+    // Clear auto-silence timer — works for both manual click and auto-trigger
+    if (autoSilenceIntervalRef.current) {
+      clearInterval(autoSilenceIntervalRef.current);
+      autoSilenceIntervalRef.current = null;
+    }
+    autoSilenceSpeechDetectedRef.current = false;
+    autoSilenceCounterRef.current = 0;
     cleanupSpeechDetection();
     const activeRecorder = speechRecorderRef.current;
     if (activeRecorder && activeRecorder.state !== "inactive") {
@@ -5438,13 +5452,72 @@ function LiveAIDebateRoom({
     }
 
     toast$(
-      "Listening... Click Stop Speaking when you're done.",
+      "Listening... Speak now. Recording stops after 8 seconds of silence.",
       "info",
     );
+
+    // ── 8-second auto-stop silence monitor ─────────────────────────────────
+    // Polls every 200ms. After speech is detected, counts consecutive silent
+    // intervals. 8s silence (40 × 200ms) → auto-calls stopSpeechCapture().
+    // Cleared immediately by stopSpeechCapture() so no double-fire on manual stop.
+    if (autoSilenceIntervalRef.current) {
+      clearInterval(autoSilenceIntervalRef.current);
+    }
+    autoSilenceSpeechDetectedRef.current = false;
+    autoSilenceCounterRef.current = 0;
+
+    const SILENCE_THRESHOLD = 8;        // RMS below this = silent
+    const SILENCE_INTERVALS = 40;       // 40 × 200ms = 8 seconds
+    const CHECK_INTERVAL_MS = 200;
+
+    autoSilenceIntervalRef.current = setInterval(() => {
+      // Stop monitoring if recorder is no longer active
+      if (
+        !speechRecorderRef.current ||
+        speechRecorderRef.current.state === "inactive"
+      ) {
+        if (autoSilenceIntervalRef.current) {
+          clearInterval(autoSilenceIntervalRef.current);
+          autoSilenceIntervalRef.current = null;
+        }
+        return;
+      }
+
+      // Sample audio level from the existing analyser if available
+      let rms = 0;
+      if (speechAnalyserRef.current) {
+        const buf = new Uint8Array(speechAnalyserRef.current.frequencyBinCount);
+        speechAnalyserRef.current.getByteTimeDomainData(buf);
+        let sum = 0;
+        for (let i = 0; i < buf.length; i++) {
+          const val = (buf[i] - 128) / 128;
+          sum += val * val;
+        }
+        rms = Math.sqrt(sum / buf.length) * 100;
+      }
+
+      if (rms > SILENCE_THRESHOLD) {
+        // Voice detected — mark speech and reset silence counter
+        autoSilenceSpeechDetectedRef.current = true;
+        autoSilenceCounterRef.current = 0;
+      } else if (autoSilenceSpeechDetectedRef.current) {
+        // Silence after speech — count up
+        autoSilenceCounterRef.current += 1;
+        if (autoSilenceCounterRef.current >= SILENCE_INTERVALS) {
+          debateDebug("[AUTO-SILENCE] 8s silence detected — auto-stopping", {});
+          stopSpeechCapture();
+        }
+      }
+    }, CHECK_INTERVAL_MS);
   }
 
   // Auto-start mic removed — user must click "Start Speaking" manually.
   // Only stop recording if AI takes over while user is mid-recording.
+  // Keep ref in sync with latest startSpeechCapture so AI callbacks can call it
+  useEffect(() => {
+    startSpeechCaptureRef.current = startSpeechCapture;
+  });
+
   useEffect(() => {
     if (whoTurn !== "you" && speechRecording) {
       stopSpeechCapture();
@@ -5482,15 +5555,16 @@ function LiveAIDebateRoom({
       });
       addMsg("AI Debater", 1, replyText);
       playAiText(replyText, () => {
-        // Mute mic after AI response — user must click Start Speaking to continue
-        const _localStream = config.stream instanceof MediaStream ? config.stream : null;
-        const _audioTrack = _localStream?.getAudioTracks?.()[0];
-        if (_audioTrack) _audioTrack.enabled = false;
         setAiLocked(false);
         setWhoTurn("you");
-        debateDebug("[TURN] next speaker assigned — waiting for user to click Start Speaking", {
+        debateDebug("[TURN] auto-starting speech capture after AI response", {
           activeSpeakerId: 0,
         });
+        // Auto-trigger startSpeechCapture — same as user clicking Start Speaking.
+        // Re-enables mic track and starts 8s silence monitor automatically.
+        setTimeout(() => {
+          startSpeechCaptureRef.current?.();
+        }, 300);
       });
     } catch (error: any) {
       debateDebug("[ERROR] AI response failed", {
