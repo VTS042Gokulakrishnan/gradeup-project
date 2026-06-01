@@ -187,7 +187,7 @@ export async function clearTutorHistory(payload: {
 }
 
 export async function getFaqs(unitId: string) {
-  return apiFetch<any>(`/api/v1/tutor/faq?unitId=${encodeURIComponent(unitId)}`);
+  return apiFetch<any>(`/api/v1/library/units/${encodeURIComponent(unitId)}/faq`);
 }
 
 export async function generateQuiz(payload: {

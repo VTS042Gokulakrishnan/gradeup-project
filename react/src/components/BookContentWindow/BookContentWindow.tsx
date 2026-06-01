@@ -1610,8 +1610,8 @@ function buildStructuredLayout(content: any, chapterId: string | number, topicMa
 
 function buildChapterFromUnit(unit: any, contentPayload: any, index: number) {
   const fallbackTitle = unit.unitTitle || unit.unitLabel || `Unit ${index + 1}`;
-  const text = flattenContentToText(contentPayload).trim();
-  const sectionTopics = (contentPayload?.sectionTopics || extractSectionTopicsFromContent(contentPayload, unit.id)).map((topic: any) => ({
+  const enrichedContent = contentPayload?.enriched ?? contentPayload?.content ?? contentPayload ?? null;
+  const sectionTopics = (contentPayload?.sectionTopics || extractSectionTopicsFromContent(enrichedContent || contentPayload, unit.id)).map((topic: any) => ({
     id: String(topic.id || `${unit.id}:${topic.label}`),
     label: topic.label,
     title: topic.sectionTitle || topic.title || topic.label,
@@ -1619,7 +1619,9 @@ function buildChapterFromUnit(unit: any, contentPayload: any, index: number) {
     anchor: topic.anchor || makeAnchorId(unit.id, topic.sectionNumber || topic.sectionTitle || topic.label),
   }));
   const topicAnchorMap = new Map(sectionTopics.map((topic: any) => [topic.label, topic.anchor]));
-  const layout = buildStructuredLayout(contentPayload, unit.id, topicAnchorMap);
+  const layoutSource = enrichedContent || contentPayload;
+  const layout = buildStructuredLayout(layoutSource, unit.id, topicAnchorMap);
+  const text = flattenContentToText(layoutSource).trim();
 
   return {
     id: unit.id,
@@ -1629,7 +1631,7 @@ function buildChapterFromUnit(unit: any, contentPayload: any, index: number) {
     enhancedContent: text || `${fallbackTitle} content is available for reading.`,
     layout: layout.length ? layout : undefined,
     sectionTopics,
-    sourceContent: contentPayload,
+    sourceContent: layoutSource,
     unit: unit.unitNumber || index + 1,
   };
 }
@@ -1853,25 +1855,20 @@ const BookContentWindow = () => {
   };
 
   const loadChapterContentPayload = async (unit: any) => {
-    const [enrichedResult, structuredResult] = await Promise.allSettled([
+    const [enrichedResult] = await Promise.allSettled([
       getUnitContent(unit.id, "enriched"),
-      getUnitContent(unit.id, "structured"),
     ]);
 
     const enriched =
       enrichedResult.status === "fulfilled" ? enrichedResult.value : null;
-    const structured =
-      structuredResult.status === "fulfilled" ? structuredResult.value : null;
 
     const sectionTopics =
       enriched?.sectionTopics ||
-      structured?.sectionTopics ||
       unit.sectionTopics ||
       [];
 
     return {
       enriched: enriched?.content || null,
-      structured: structured?.content || null,
       sectionTopics,
     };
   };
@@ -2466,6 +2463,7 @@ const BookContentWindow = () => {
     setIsEnhancing(true);
     setTimeout(() => {
       setIsEnhancing(false);
+      const geniusSource = activeChapter.sourceContent || activeChapter.enhancedContent || activeChapter.content || "";
       const geniusUnitTitle =
         activeChapter.unitTitle ||
         selectedBook.chapters.find((entry: any) => entry.unit === activeChapter.unit)?.unitTitle ||
@@ -2474,7 +2472,7 @@ const BookContentWindow = () => {
         selectedBook.title;
       const geniusContent = serializeBlocksForGenius(
         activeChapter.layout,
-        activeChapter.enhancedContent || activeChapter.content || flattenContentToText(activeChapter.sourceContent || ""),
+        activeChapter.enhancedContent || activeChapter.content || flattenContentToText(geniusSource),
       );
       openEnhancedView(
         geniusContent,

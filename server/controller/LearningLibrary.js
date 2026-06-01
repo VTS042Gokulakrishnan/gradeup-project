@@ -4,6 +4,7 @@ const {
   resolveSubjectUnit,
   toUnitSummary,
   extractSectionTopicsForUnit,
+  extractFaqsForUnit,
 } = require("../services/learningContextService");
 
 const controller = {
@@ -65,6 +66,26 @@ const controller = {
       return res.status(error.statusCode || 500).json({
         status: false,
         message: error.message || "Failed to fetch unit content",
+      });
+    }
+  },
+
+  async getUnitFaq(req, res) {
+    try {
+      const unit = await resolveSubjectUnit({ unitId: req.params.unitId });
+      const faqs = extractFaqsForUnit(unit);
+
+      return res.status(200).json({
+        status: true,
+        data: {
+          unit: toUnitSummary(unit),
+          faqs,
+        },
+      });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({
+        status: false,
+        message: error.message || "Failed to fetch unit FAQs",
       });
     }
   },

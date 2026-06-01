@@ -277,13 +277,14 @@ const defaultFaqs = [
 const FAQPanel: React.FC<FAQPanelProps> = ({ subject = "", unit, unitId, onBack }) => {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const [search, setSearch] = useState("");
-  const [faqs, setFaqs] = useState<any[]>(defaultFaqs);
-  const [isDefault, setIsDefault] = useState(true);
+  const [faqs, setFaqs] = useState<any[]>([]);
+  const [isDefault, setIsDefault] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const subjectKey = subject.toLowerCase().replace(/\s/g, "_");
   const unitKey = unit.toLowerCase().replace(/\s/g, "-");
+  const unitSelected = Boolean(unitId && unit.trim());
 
   const toTitle = (s: string) =>
     s.replace(/[_-]/g, " ").replace(/\b\w/g, c => c.toUpperCase());
@@ -301,9 +302,9 @@ const FAQPanel: React.FC<FAQPanelProps> = ({ subject = "", unit, unitId, onBack 
     let ignore = false;
 
     async function load() {
-      if (!unitId) {
-        setFaqs(defaultFaqs);
-        setIsDefault(true);
+      if (!unitSelected) {
+        setFaqs([]);
+        setIsDefault(false);
         setErrorMessage("");
         return;
       }
@@ -315,17 +316,22 @@ const FAQPanel: React.FC<FAQPanelProps> = ({ subject = "", unit, unitId, onBack 
         const data = await getFaqs(unitId);
         const items = Array.isArray(data?.faqs)
           ? data.faqs
-          : Array.isArray(data)
-            ? data
-            : Array.isArray(data?.questions)
-              ? data.questions
-              : [];
+          : Array.isArray(data?.data?.faqs)
+            ? data.data.faqs
+            : Array.isArray(data)
+              ? data
+              : Array.isArray(data?.questions)
+                ? data.questions
+                : Array.isArray(data?.data?.questions)
+                  ? data.data.questions
+                  : [];
 
         if (ignore) return;
 
         if (!items.length) {
-          setFaqs(defaultFaqs);
-          setIsDefault(true);
+          setFaqs([]);
+          setIsDefault(false);
+          setErrorMessage("No FAQs found for the selected unit.");
           return;
         }
 
@@ -343,8 +349,8 @@ const FAQPanel: React.FC<FAQPanelProps> = ({ subject = "", unit, unitId, onBack 
         setIsDefault(false);
       } catch (error: any) {
         if (ignore) return;
-        setFaqs(defaultFaqs);
-        setIsDefault(true);
+        setFaqs([]);
+        setIsDefault(false);
         setErrorMessage(error.message || "Unable to load FAQs right now.");
       } finally {
         if (!ignore) {
@@ -358,7 +364,7 @@ const FAQPanel: React.FC<FAQPanelProps> = ({ subject = "", unit, unitId, onBack 
     return () => {
       ignore = true;
     };
-  }, [unitId]);
+  }, [unitId, unitSelected]);
 
   return (
     <>
@@ -404,7 +410,12 @@ const FAQPanel: React.FC<FAQPanelProps> = ({ subject = "", unit, unitId, onBack 
         </div>
 
         {/* ── Meta bar ── */}
-        {isDefault ? (
+        {!unitSelected ? (
+          <div className="fp-default-notice">
+            <MessageCircle size={12} />
+            Select the unit to load FAQs.
+          </div>
+        ) : isDefault ? (
           <div className="fp-default-notice">
             <MessageCircle size={12} />
             {isLoading
@@ -426,7 +437,17 @@ const FAQPanel: React.FC<FAQPanelProps> = ({ subject = "", unit, unitId, onBack 
 
         {/* ── Scrollable FAQ list ── */}
         <div className="fp-list">
-          {filtered.length === 0 ? (
+          {!unitSelected ? (
+            <div className="fp-empty">
+              <div className="fp-empty-ico">
+                <HelpCircle size={20} style={{ color: "#6366f1" }} />
+              </div>
+              <div className="fp-empty-title">Select the unit</div>
+              <div className="fp-empty-sub">
+                Choose a unit first to load FAQs from that unit’s sections.
+              </div>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="fp-empty">
               <div className="fp-empty-ico">
                 <Search size={20} style={{ color: "#6366f1" }} />

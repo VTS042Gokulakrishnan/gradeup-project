@@ -200,6 +200,121 @@ function extractSectionTopicsForUnit(unit) {
   });
 }
 
+function normalizeFaqText(value = "") {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function createFaqRecord({
+  unit,
+  question,
+  answer,
+  sectionTitle,
+  source,
+}) {
+  const cleanQuestion = normalizeFaqText(question);
+  const cleanAnswer = normalizeFaqText(answer);
+  if (!cleanQuestion || !cleanAnswer) {
+    return null;
+  }
+
+  return {
+    id: `${unit.documentId}:${cleanQuestion.toLowerCase()}`,
+    subjectGroupKey: getSubjectGroupLookup(unit),
+    subject: unit.subject,
+    unitId: String(unit._id),
+    unitNumber: unit.unitNumber,
+    unitTitle: unit.unitTitle,
+    documentId: unit.documentId,
+    question: cleanQuestion,
+    answer: cleanAnswer,
+    sectionTitle: normalizeFaqText(sectionTitle) || null,
+    source: source || null,
+  };
+}
+
+function extractFaqsFromValue(value, unit, collected, seen, sectionTitle = null) {
+  if (!value) {
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => extractFaqsFromValue(item, unit, collected, seen, sectionTitle));
+    return;
+  }
+
+  if (typeof value !== "object") {
+    return;
+  }
+
+  const directQuestion =
+    value.question ||
+    value.q ||
+    value.prompt ||
+    value.ask ||
+    value.title ||
+    value.heading;
+  const directAnswer =
+    value.answer ||
+    value.a ||
+    value.response ||
+    value.reply ||
+    value.content ||
+    value.summary ||
+    value.explanation;
+
+  const nextSectionTitle =
+    value.section_title ||
+    value.sectionTitle ||
+    value.topic ||
+    value.title ||
+    sectionTitle;
+
+  if (directQuestion && directAnswer) {
+    const faqRecord = createFaqRecord({
+      unit,
+      question: directQuestion,
+      answer: directAnswer,
+      sectionTitle: nextSectionTitle,
+      source: value.source || value.kind || value.type || null,
+    });
+
+    if (faqRecord) {
+      const faqKey = `${faqRecord.unitId}:${faqRecord.question.toLowerCase()}`;
+      if (!seen.has(faqKey)) {
+        seen.add(faqKey);
+        collected.push(faqRecord);
+      }
+    }
+  }
+
+  [
+    value.units,
+    value.faq,
+    value.faqs,
+    value.questions,
+    value.qa,
+    value.qna,
+    value.items,
+    value.children,
+    value.sections,
+    value.topics,
+    value.content,
+    value.enrichment,
+  ].forEach((nested) => extractFaqsFromValue(nested, unit, collected, seen, nextSectionTitle));
+}
+
+function extractFaqsForUnit(unit) {
+  const collected = [];
+  const seen = new Set();
+
+  extractFaqsFromValue(unit.enrichedData, unit, collected, seen);
+  extractFaqsFromValue(unit.structuredData, unit, collected, seen);
+
+  return collected;
+}
+
 async function resolveSubjectGroupImages(units = []) {
   const firstUnit = units[0];
   if (!firstUnit) {
@@ -517,6 +632,7 @@ module.exports = {
   getSubjectGroupByKey,
   listSectionTopicsForSubjectGroup,
   extractSectionTopicsForUnit,
+  extractFaqsForUnit,
   resolveSubjectUnit,
   getPythonLearningContext,
   toUnitSummary,
