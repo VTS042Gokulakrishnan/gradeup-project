@@ -5046,9 +5046,13 @@ function LiveAIDebateRoom({
               reason: "playback-ended",
               sessionId: config.sessionId,
             });
+            // Mute mic while handing turn back — user must click Start Speaking
+            const _localStream = config.stream instanceof MediaStream ? config.stream : null;
+            const _audioTrack = _localStream?.getAudioTracks?.()[0];
+            if (_audioTrack) _audioTrack.enabled = false;
             setAiLocked(false);
             setWhoTurn("you");
-            ttsDebug("[TURN] next speaker assigned", {
+            ttsDebug("[TURN] next speaker assigned — waiting for user to click Start Speaking", {
               activeSpeakerId: 0,
             });
           },
@@ -5108,11 +5112,20 @@ function LiveAIDebateRoom({
     if (activeRecorder && activeRecorder.state !== "inactive") {
       activeRecorder.stop();
     }
+    // Mute mic immediately after stopping — re-enabled when user clicks Start Speaking
+    const _localStream = config.stream instanceof MediaStream ? config.stream : null;
+    const _audioTrack = _localStream?.getAudioTracks?.()[0];
+    if (_audioTrack) _audioTrack.enabled = false;
   }
 
   async function startSpeechCapture() {
+    // Derive candidateId safely — config shape differs between 1v1 and multi-user
     const currentUserId = String(
-      config.candidateId || config.userId || config.participantId || "",
+      config.candidateId ||
+      config.userId ||
+      config.participantId ||
+      candidateContext?.candidateId ||
+      "",
     );
     debateDebug("[SPEAK] button clicked", {
       whoTurn,
@@ -5196,38 +5209,69 @@ function LiveAIDebateRoom({
       readyState: audioTrack.readyState,
       enabled: audioTrack.enabled,
     });
+    // If mic track is disabled (muted while AI was speaking), re-enable it now
+    // that user has clicked Start Speaking. Do NOT block — just enable and proceed.
     if (!audioTrack.enabled) {
-      debateDebug("[SPEAK] blocked", {
-        reason: "track_disabled",
-        activeSpeakerId,
-        currentUserId,
-        participantId: currentUserId,
-        hasStream: Boolean(localStream),
+      debateDebug("[MIC] re-enabling track on user click", {
+        readyState: audioTrack.readyState,
       });
-      debateDebug("[EARLY_RETURN]", {
-        functionName: "startSpeechCapture",
-        reason: "track_disabled",
-        values: {
-          activeSpeakerId,
-          currentUserId,
-          participantId: currentUserId,
-          hasStream: Boolean(localStream),
-        },
-      });
-      toast$("Enable your microphone before speaking.", "warn");
+      audioTrack.enabled = true;
+    }
+    // Ensure track is live before recording — ended track causes NotSupportedError
+    if (audioTrack.readyState === "ended") {
+      debateDebug("[ERROR] audio track ended — requesting fresh stream", {});
+      try {
+        const freshStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        const freshTrack = freshStream.getAudioTracks()[0];
+        if (!freshTrack) {
+          toast$("Microphone is not available.", "error");
+          speechCaptureLockRef.current = false;
+          return;
+        }
+        // Replace dead track with fresh one in config.stream
+        if (localStream) {
+          localStream.removeTrack(audioTrack);
+          localStream.addTrack(freshTrack);
+        }
+        // Re-assign so the recorder uses the fresh track
+        Object.defineProperty(freshTrack, "_fromFresh", { value: true });
+        // Fall through with freshTrack
+        debateDebug("[MIC] fresh stream obtained", { readyState: freshTrack.readyState });
+      } catch (err: any) {
+        toast$(err?.message || "Microphone access failed.", "error");
+        speechCaptureLockRef.current = false;
+        return;
+      }
+    }
+
+    // Re-read audioTrack after possible refresh
+    const liveTrack = localStream?.getAudioTracks?.()[0];
+    if (!liveTrack || liveTrack.readyState === "ended") {
+      toast$("Microphone track is not available. Please refresh and allow mic access.", "error");
+      speechCaptureLockRef.current = false;
       return;
     }
+    liveTrack.enabled = true;
+
     debateDebug("[RECORDER] creating", {
       mimeType: MediaRecorder.isTypeSupported("audio/webm")
         ? "audio/webm"
         : "audio/mp4",
       trackCount: 1,
+      trackReadyState: liveTrack.readyState,
     });
     speechCaptureLockRef.current = true;
-    const recordingStream = new MediaStream([audioTrack]);
+    const recordingStream = new MediaStream([liveTrack]);
     const mimeType = MediaRecorder.isTypeSupported("audio/webm")
       ? "audio/webm"
-      : "audio/mp4";
+      : MediaRecorder.isTypeSupported("audio/mp4")
+      ? "audio/mp4"
+      : "";
+    if (!mimeType) {
+      toast$("Your browser does not support audio recording.", "error");
+      speechCaptureLockRef.current = false;
+      return;
+    }
     const recorderInstance = new MediaRecorder(recordingStream, { mimeType });
     debateDebug("[RECORDER] created", {
       mimeType,
@@ -5373,43 +5417,18 @@ function LiveAIDebateRoom({
     }
 
     toast$(
-      "Listening... your response auto-sends after about 2.4 seconds of silence.",
+      "Listening... Click Stop Speaking when you're done.",
       "info",
     );
   }
 
+  // Auto-start mic removed — user must click "Start Speaking" manually.
+  // Only stop recording if AI takes over while user is mid-recording.
   useEffect(() => {
-    if (
-      whoTurn !== "you" ||
-      aiLocked ||
-      speechRecording ||
-      speechProcessing ||
-      endingDebate
-    ) {
-      if (whoTurn !== "you" && speechRecording) {
-        stopSpeechCapture();
-      }
-      return;
+    if (whoTurn !== "you" && speechRecording) {
+      stopSpeechCapture();
     }
-    const turnKey = `${messages.length}:${whoTurn}:${aiLocked ? 1 : 0}`;
-    if (autoTurnStartRef.current === turnKey) {
-      return;
-    }
-    autoTurnStartRef.current = turnKey;
-    console.log("[TURN] speech capture armed", {
-      turnKey,
-      whoTurn,
-      aiLocked,
-    });
-    startSpeechCapture().catch(() => null);
-  }, [
-    aiLocked,
-    endingDebate,
-    messages.length,
-    speechProcessing,
-    speechRecording,
-    whoTurn,
-  ]);
+  }, [whoTurn, speechRecording]);
 
   async function sendMsg(text: string) {
     if (!text.trim() || aiLocked || endingDebate) return;
@@ -5442,9 +5461,13 @@ function LiveAIDebateRoom({
       });
       addMsg("AI Debater", 1, replyText);
       playAiText(replyText, () => {
+        // Mute mic after AI response — user must click Start Speaking to continue
+        const _localStream = config.stream instanceof MediaStream ? config.stream : null;
+        const _audioTrack = _localStream?.getAudioTracks?.()[0];
+        if (_audioTrack) _audioTrack.enabled = false;
         setAiLocked(false);
         setWhoTurn("you");
-        debateDebug("[TURN] next speaker assigned", {
+        debateDebug("[TURN] next speaker assigned — waiting for user to click Start Speaking", {
           activeSpeakerId: 0,
         });
       });
@@ -5722,7 +5745,9 @@ function LiveAIDebateRoom({
                       <div
                         className={`chat-bubble ${message.senderId === 0 ? "bubble-own" : "bubble-o"}`}
                       >
-                        <FormattedAIContent content={message.text} />
+                        {message.text}
+                        {/*<FormattedAIContent content={message.text} />  */}
+                        
                       </div>
                     </div>
                   </div>
