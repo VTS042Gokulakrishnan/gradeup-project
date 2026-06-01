@@ -51,7 +51,7 @@ const controller = {
       const content =
         format === "structured"
           ? unit.structuredData || unit.enrichedData
-          : unit.enrichedData || unit.structuredData;
+          : unit.enrichedData || null;
 
       return res.status(200).json({
         status: true,

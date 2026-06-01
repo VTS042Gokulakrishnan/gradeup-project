@@ -63,6 +63,7 @@ interface Chapter {
     anchor: string;
   }>;
   sourceContent?: any;
+  hasEnrichedContent?: boolean;
   isUnitIntro?: boolean;
   realChapter?: Chapter;
 }
@@ -154,57 +155,92 @@ function normalizeArrayField(value: any): string[] {
   return [];
 }
 
-function serializeBlocksForGenius(layout: any[] | undefined, fallbackContent: string) {
-  const blocks = Array.isArray(layout) && layout.length
-    ? layout
-    : buildTextLayoutFromString(fallbackContent || "");
+function serializeEnrichedForGenius(enrichedContent: any, fallbackTitle: string) {
+  if (!enrichedContent || typeof enrichedContent !== "object") {
+    return "";
+  }
 
-  return blocks
-    .map((block) => {
-      if (!block) return "";
+  const lines: string[] = [];
+  const pushText = (value: any) => {
+    const text = flattenContentToText(value).trim();
+    if (text) lines.push(text);
+  };
+  const pushList = (title: string, value: any) => {
+    const items = Array.isArray(value)
+      ? value.map((item) => flattenContentToText(item).trim()).filter(Boolean)
+      : [];
+    if (!items.length) return;
+    lines.push(`### ${title}`);
+    lines.push(items.map((item) => `- ${item}`).join("\n"));
+  };
+  const pushFaqs = (value: any) => {
+    const faqs = Array.isArray(value) ? value : [];
+    if (!faqs.length) return;
+    lines.push("### FAQs");
+    faqs.forEach((faq) => {
+      const question = flattenContentToText(faq?.question || faq?.q || faq?.title).trim();
+      const answer = flattenContentToText(faq?.answer || faq?.a || faq?.response || faq?.explanation).trim();
+      if (question) lines.push(`- Q: ${question}`);
+      if (answer) lines.push(`  A: ${answer}`);
+    });
+  };
+  const pushPracticeQuestions = (value: any) => {
+    const questions = Array.isArray(value) ? value : [];
+    if (!questions.length) return;
+    lines.push("### Practice Questions");
+    lines.push(
+      questions
+        .map((item) => flattenContentToText(item?.question || item).trim())
+        .filter(Boolean)
+        .map((question, index) => `${index + 1}. ${question}`)
+        .join("\n"),
+    );
+  };
 
-      if (block.type === "heading1") return `# ${block.content || ""}`;
-      if (block.type === "heading2") return `## ${block.content || ""}`;
-      if (block.type === "heading3") return `### ${block.content || ""}`;
-      if (block.type === "list" && Array.isArray(block.items)) {
-        return block.items.map((item: string) => `- ${item}`).join("\n");
-      }
-      if (block.type === "formula") {
-        return `### Formula\n${block.content || ""}`;
-      }
-      if (block.type === "table" && Array.isArray(block.rows)) {
-        return block.rows
-          .map((row: string[]) => row.filter(Boolean).join(" | "))
-          .filter(Boolean)
-          .join("\n");
-      }
-      if (block.type === "image" || block.imageUrl || block.image || block.src || block.media || block.images) {
-        const imageUrl = resolveMediaUrl(
-          block.imageUrl ||
-          block.image ||
-          block.src ||
-          block.url ||
-          block.assetUrl ||
-          block.asset ||
-          block.thumbnail ||
-          block.thumbnailUrl ||
-          block.coverImage ||
-          block.coverImageUrl ||
-          block.images ||
-          block.media,
-        );
-        if (!imageUrl) return "";
-        const caption = String(block.caption || block.title || "Illustration").replace(/[\r\n]+/g, " ").trim();
-        return `![${caption}](${imageUrl})`;
-      }
-      if (block.type === "html") {
-        return flattenContentToText(block.content || "").trim();
-      }
+  const units = Array.isArray(enrichedContent?.units)
+    ? enrichedContent.units
+    : Array.isArray(enrichedContent)
+      ? enrichedContent
+      : [enrichedContent];
 
-      return flattenContentToText(block.content || block.text || "").trim();
-    })
-    .filter(Boolean)
-    .join("\n\n");
+  units.forEach((unit: any, unitIndex: number) => {
+    const unitTitle =
+      unit?.title ||
+      unit?.unitTitle ||
+      unit?.chapterName ||
+      fallbackTitle ||
+      `Unit ${unitIndex + 1}`;
+    if (unitTitle) lines.push(`# ${unitTitle}`);
+
+    const sections = Array.isArray(unit?.sections) ? unit.sections : [];
+    sections.forEach((section: any) => {
+      const sectionTitle =
+        section?.section_title ||
+        section?.sectionTitle ||
+        section?.title ||
+        section?.heading;
+      if (sectionTitle) lines.push(`## ${sectionTitle}`);
+
+      const enrichment = section?.enrichment || section;
+      pushText(enrichment?.concept_overview);
+      pushText(enrichment?.detailed_explanation);
+      pushList("Real World Connections", enrichment?.real_world_connections);
+      pushList("Key Points", enrichment?.key_points || enrichment?.keyPoints || enrichment?.points);
+      pushFaqs(enrichment?.faqs || enrichment?.faq);
+      pushPracticeQuestions(enrichment?.practice_questions || enrichment?.practiceQuestions);
+    });
+
+    if (!sections.length) {
+      const enrichment = unit?.enrichment || unit;
+      pushText(enrichment?.concept_overview);
+      pushText(enrichment?.detailed_explanation);
+      pushList("Real World Connections", enrichment?.real_world_connections);
+      pushFaqs(enrichment?.faqs || enrichment?.faq);
+      pushPracticeQuestions(enrichment?.practice_questions || enrichment?.practiceQuestions);
+    }
+  });
+
+  return lines.filter(Boolean).join("\n\n").trim();
 }
 
 // ─── sessionStorage helpers ───────────────────────────────────────────────────
@@ -1610,7 +1646,7 @@ function buildStructuredLayout(content: any, chapterId: string | number, topicMa
 
 function buildChapterFromUnit(unit: any, contentPayload: any, index: number) {
   const fallbackTitle = unit.unitTitle || unit.unitLabel || `Unit ${index + 1}`;
-  const enrichedContent = contentPayload?.enriched ?? contentPayload?.content ?? contentPayload ?? null;
+  const enrichedContent = contentPayload?.enriched || null;
   const sectionTopics = (contentPayload?.sectionTopics || extractSectionTopicsFromContent(enrichedContent || contentPayload, unit.id)).map((topic: any) => ({
     id: String(topic.id || `${unit.id}:${topic.label}`),
     label: topic.label,
@@ -1619,7 +1655,7 @@ function buildChapterFromUnit(unit: any, contentPayload: any, index: number) {
     anchor: topic.anchor || makeAnchorId(unit.id, topic.sectionNumber || topic.sectionTitle || topic.label),
   }));
   const topicAnchorMap = new Map(sectionTopics.map((topic: any) => [topic.label, topic.anchor]));
-  const layoutSource = enrichedContent || contentPayload;
+  const layoutSource = enrichedContent;
   const layout = buildStructuredLayout(layoutSource, unit.id, topicAnchorMap);
   const text = flattenContentToText(layoutSource).trim();
 
@@ -1632,6 +1668,7 @@ function buildChapterFromUnit(unit: any, contentPayload: any, index: number) {
     layout: layout.length ? layout : undefined,
     sectionTopics,
     sourceContent: layoutSource,
+    hasEnrichedContent: Boolean(enrichedContent),
     unit: unit.unitNumber || index + 1,
   };
 }
@@ -1869,6 +1906,7 @@ const BookContentWindow = () => {
 
     return {
       enriched: enriched?.content || null,
+      hasEnrichedContent: Boolean(enriched?.content),
       sectionTopics,
     };
   };
@@ -2447,9 +2485,14 @@ const BookContentWindow = () => {
     }
   };
 
-  const hasGeniusContent = Boolean(
-    activeChapter?.layout?.length || activeChapter?.enhancedContent || activeChapter?.sourceContent || activeChapter?.content,
+  const isRemoteChapter = Boolean(
+    activeChapter &&
+      (Object.prototype.hasOwnProperty.call(activeChapter, "sourceContent") ||
+        Object.prototype.hasOwnProperty.call(activeChapter, "hasEnrichedContent")),
   );
+  const hasGeniusContent = isRemoteChapter
+    ? Boolean(activeChapter?.sourceContent)
+    : Boolean(activeChapter?.enhancedContent || activeChapter?.content);
 
   const handleEnhanceContent = () => {
     if (!hasGeniusContent || !activeChapter || !selectedBook) {
@@ -2463,17 +2506,24 @@ const BookContentWindow = () => {
     setIsEnhancing(true);
     setTimeout(() => {
       setIsEnhancing(false);
-      const geniusSource = activeChapter.sourceContent || activeChapter.enhancedContent || activeChapter.content || "";
+      const geniusSource = activeChapter.sourceContent;
       const geniusUnitTitle =
         activeChapter.unitTitle ||
         selectedBook.chapters.find((entry: any) => entry.unit === activeChapter.unit)?.unitTitle ||
         selectedBook.chapters.find((entry: any) => entry.unit === activeChapter.unit)?.title ||
         activeChapter.title ||
         selectedBook.title;
-      const geniusContent = serializeBlocksForGenius(
-        activeChapter.layout,
-        activeChapter.enhancedContent || activeChapter.content || flattenContentToText(geniusSource),
-      );
+      const geniusContent = isRemoteChapter
+        ? serializeEnrichedForGenius(geniusSource, geniusUnitTitle)
+        : String(activeChapter.enhancedContent || activeChapter.content || "").trim();
+      if (!geniusContent) {
+        pushToast({
+          title: "Genius Mode unavailable",
+          description: "No enriched content is available for this unit yet.",
+          variant: "destructive",
+        });
+        return;
+      }
       openEnhancedView(
         geniusContent,
         geniusUnitTitle,
