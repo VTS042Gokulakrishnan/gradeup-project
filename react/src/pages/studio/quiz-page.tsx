@@ -26,10 +26,16 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
-import { mockSubjects, mockUnits } from "../../lib/mockData";
 import { ScrollArea } from "../../components/ui/scroll-area";
 import { useAuth } from "../../hooks/use-auth";
 import Navigation from "../../components/navigation";
+import {
+  generateQuiz,
+  getCandidateContext,
+  getLibrarySubjects,
+  submitQuiz,
+  type LibrarySubject,
+} from "../../lib/gradeupApi";
 
 /* ═══════════════════════════════════════════════════════
    DASHBOARD DESIGN TOKENS — exact match
@@ -359,114 +365,36 @@ interface EnrichedUnit {
   name: string;
   subjectName: string;
   subjectId: string;
+  subjectGroupKey: string;
+  unitNumber?: number | null;
+}
+
+interface QuizQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  correctAnswer: number;
+  explanation?: string;
+}
+
+interface QuizBankCard {
+  id: string;
+  title: string;
+  subject: string;
+  questions: number;
+  difficulty: string;
+  color: string;
+  accentBg: string;
+  time: number;
 }
 
 // ── Mock Data ──────────────────────────────────────────────────────────
-const QUIZ_BANK = [
-  {
-    id: 1,
-    title: "Algebra Basics",
-    subject: "Mathematics",
-    subjectId: "1",
-    questions: 15,
-    difficulty: "Easy",
-    color: "#10b981",
-    accentBg: "rgba(16,185,129,.1)",
-    time: 10,
-  },
-  {
-    id: 2,
-    title: "Newtonian Physics",
-    subject: "Physics",
-    subjectId: "2",
-    questions: 20,
-    difficulty: "Medium",
-    color: "#f59e0b",
-    accentBg: "rgba(245,158,11,.1)",
-    time: 15,
-  },
-  {
-    id: 3,
-    title: "Organic Chemistry Reactions",
-    subject: "Chemistry",
-    subjectId: "3",
-    questions: 25,
-    difficulty: "Hard",
-    color: "#ef4444",
-    accentBg: "rgba(239,68,68,.1)",
-    time: 20,
-  },
-  {
-    id: 4,
-    title: "Cellular Biology",
-    subject: "Biology",
-    subjectId: "4",
-    questions: 15,
-    difficulty: "Easy",
-    color: "#10b981",
-    accentBg: "rgba(16,185,129,.1)",
-    time: 10,
-  },
-  {
-    id: 5,
-    title: "World War II",
-    subject: "History",
-    subjectId: "6",
-    questions: 30,
-    difficulty: "Medium",
-    color: "#8b5cf6",
-    accentBg: "rgba(139,92,246,.1)",
-    time: 25,
-  },
-  {
-    id: 6,
-    title: "Data Structures",
-    subject: "Computer Sci",
-    subjectId: "7",
-    questions: 20,
-    difficulty: "Hard",
-    color: "#6366f1",
-    accentBg: "rgba(99,102,241,.1)",
-    time: 15,
-  },
-];
-const QUESTIONS = [
-  {
-    question:
-      "What is the primary function of the mitochondria in a eukaryotic cell?",
-    options: [
-      "To store genetic information",
-      "To synthesize proteins",
-      "To generate ATP through cellular respiration",
-      "To break down waste materials",
-    ],
-    correctAnswer: 2,
-  },
-  {
-    question: "What is the capital of Japan?",
-    options: ["Beijing", "Seoul", "Tokyo", "Bangkok"],
-    correctAnswer: 2,
-  },
-  {
-    question: "Which element has the atomic number 1?",
-    options: ["Helium", "Hydrogen", "Oxygen", "Lithium"],
-    correctAnswer: 1,
-  },
-  {
-    question: "Who wrote 'Romeo and Juliet'?",
-    options: [
-      "Charles Dickens",
-      "Mark Twain",
-      "William Shakespeare",
-      "Jane Austen",
-    ],
-    correctAnswer: 2,
-  },
-  {
-    question: "What is 15% of 200?",
-    options: ["20", "25", "30", "35"],
-    correctAnswer: 2,
-  },
+const BANK_PALETTE = [
+  { color: "#10b981", accentBg: "rgba(16,185,129,.1)" },
+  { color: "#6366f1", accentBg: "rgba(99,102,241,.1)" },
+  { color: "#f59e0b", accentBg: "rgba(245,158,11,.1)" },
+  { color: "#8b5cf6", accentBg: "rgba(139,92,246,.1)" },
+  { color: "#ef4444", accentBg: "rgba(239,68,68,.1)" },
 ];
 const DIFFICULTIES = [
   {
@@ -497,15 +425,105 @@ const DIFFICULTIES = [
 const COUNTS = ["5", "10", "15", "20"];
 const TIMES = ["5", "10", "15", "30"];
 
-const allUnits: EnrichedUnit[] = mockSubjects.flatMap((subject) => {
-  const units = mockUnits[subject.id.toString()] || [];
-  return units.map((unit) => ({
-    id: `${subject.id}-${unit.id}`,
-    name: unit.name,
-    subjectName: subject.name,
-    subjectId: subject.id.toString(),
-  }));
-});
+function mapLibraryUnits(subjects: LibrarySubject[]): EnrichedUnit[] {
+  return subjects.flatMap((subjectGroup) =>
+    (subjectGroup.units || []).map((unit) => ({
+      id: unit.id,
+      name: unit.unitTitle || unit.unitLabel || `Unit ${unit.unitNumber || ""}`.trim(),
+      subjectName: subjectGroup.title || subjectGroup.subject,
+      subjectId: subjectGroup.subjectGroupKey,
+      subjectGroupKey: subjectGroup.subjectGroupKey,
+      unitNumber: unit.unitNumber,
+    })),
+  );
+}
+
+function mapQuizBanks(subjects: LibrarySubject[]): QuizBankCard[] {
+  return subjects
+    .filter((subjectGroup) => (subjectGroup.units || []).length > 0)
+    .map((subjectGroup, index) => {
+      const palette = BANK_PALETTE[index % BANK_PALETTE.length];
+      return {
+        id: subjectGroup.subjectGroupKey,
+        title: subjectGroup.title || subjectGroup.subject,
+        subject: `${subjectGroup.board || "Uploaded"} · ${subjectGroup.standard || "Library"}`,
+        questions: Math.max(5, (subjectGroup.unitCount || subjectGroup.units?.length || 1) * 5),
+        difficulty: "AI",
+        color: palette.color,
+        accentBg: palette.accentBg,
+        time: 10,
+      };
+    });
+}
+
+function toOptionList(question: any): string[] {
+  const source =
+    question?.options ||
+    question?.choices ||
+    question?.answers ||
+    question?.possible_answers ||
+    [];
+  if (Array.isArray(source)) {
+    return source.map((item) => String(item?.text || item?.label || item || "").trim()).filter(Boolean);
+  }
+  if (source && typeof source === "object") {
+    return Object.values(source).map((item) => String(item || "").trim()).filter(Boolean);
+  }
+  return [];
+}
+
+function normalizeCorrectAnswer(question: any, options: string[]): number {
+  const raw =
+    question?.correctAnswer ??
+    question?.correct_answer ??
+    question?.correctOption ??
+    question?.correct_option ??
+    question?.correctIndex ??
+    question?.correct_index ??
+    question?.answer ??
+    question?.correct ??
+    question?.solution;
+  if (typeof raw === "number") {
+    const normalized = raw === 0 ? 0 : raw - 1;
+    return Math.max(0, Math.min(options.length - 1, normalized));
+  }
+  const text = String(raw || "").trim();
+  const letterIndex = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".indexOf(text.toUpperCase());
+  if (letterIndex >= 0 && letterIndex < options.length) return letterIndex;
+  const exactIndex = options.findIndex((option) => option.toLowerCase() === text.toLowerCase());
+  return exactIndex >= 0 ? exactIndex : 0;
+}
+
+function normalizeQuizQuestions(payload: any): QuizQuestion[] {
+  const rawQuestions =
+    payload?.questions ||
+    payload?.quiz?.questions ||
+    payload?.data?.questions ||
+    payload?.items ||
+    [];
+  if (!Array.isArray(rawQuestions)) return [];
+  return rawQuestions
+    .map((question, index) => {
+      const options = toOptionList(question);
+      if (options.length < 2) return null;
+      const prompt = String(
+        question?.question ||
+          question?.prompt ||
+          question?.text ||
+          question?.title ||
+          "",
+      ).trim();
+      if (!prompt) return null;
+      return {
+        id: String(question?.id || question?.question_id || index + 1),
+        question: prompt,
+        options,
+        correctAnswer: normalizeCorrectAnswer(question, options),
+        explanation: question?.explanation || question?.reason || question?.solution || "",
+      };
+    })
+    .filter(Boolean) as QuizQuestion[];
+}
 
 // ── Loader ─────────────────────────────────────────────────────────────
 const LOADER_MSGS = [
@@ -559,12 +577,13 @@ const Wizard = ({
   units,
   onClose,
 }: {
-  onStart: (c: QuizConfig) => void;
+  onStart: (c: QuizConfig) => Promise<void>;
   units: EnrichedUnit[];
   onClose: () => void;
 }) => {
   const [step, setStep] = useState(0);
   const [loading, setLoad] = useState(false);
+  const [error, setError] = useState("");
   const { userHeader } = useAuth();
   const [cfg, setCfg] = useState<QuizConfig>({
     difficulty: "Medium",
@@ -574,12 +593,21 @@ const Wizard = ({
     timeLimit: "10",
   });
 
-  const handleStart = () => {
+  const handleStart = async () => {
+    if (!cfg.unitId) {
+      setError("Please select a unit before launching the quiz.");
+      setStep(0);
+      return;
+    }
     setLoad(true);
-    setTimeout(() => {
-      onStart(cfg);
+    setError("");
+    try {
+      await onStart(cfg);
+    } catch (error: any) {
+      setError(error?.message || "Unable to generate quiz right now.");
+    } finally {
       setLoad(false);
-    }, 3000);
+    }
   };
 
   if (loading) return <Loader />;
@@ -817,6 +845,11 @@ const Wizard = ({
                     ))}
                   </div>
                   <div style={{ textAlign: "center", marginTop: 10 }}>
+                    {error && (
+                      <div style={{ color: "#ef4444", fontSize: 12, fontWeight: 700, marginBottom: 10 }}>
+                        {error}
+                      </div>
+                    )}
                     <motion.button
                       className="qp-btn-primary"
                       whileHover={{ scale: 1.03 }}
@@ -853,50 +886,108 @@ const QuizPage = ({ params }: { params?: { id?: string } }) => {
   const { theme, setTheme } = useTheme();
   const [, setLocation] = useLocation();
   const { userHeader } = useAuth();
+  const candidateContext = getCandidateContext(userHeader);
 
   const [isLoading, setIsLoading] = useState(true);
   const [setupOpen, setSetupOpen] = useState(false);
   const [quizStarted, setQuizStarted] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [quizConfig, setQuizConfig] = useState<QuizConfig | null>(null);
-  const [unitsForWizard, setUnitsForWizard] = useState(allUnits);
+  const [librarySubjects, setLibrarySubjects] = useState<LibrarySubject[]>([]);
+  const [quizBanks, setQuizBanks] = useState<QuizBankCard[]>([]);
+  const [unitsForWizard, setUnitsForWizard] = useState<EnrichedUnit[]>([]);
+  const [quizId, setQuizId] = useState<string | null>(null);
+  const [pageError, setPageError] = useState("");
 
-  const [questions, setQuestions] = useState(QUESTIONS.slice(0, 5));
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [qIdx, setQIdx] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [statuses, setStatuses] = useState<QuestionStatus[]>([]);
   const [timeLeft, setTimeLeft] = useState(15 * 60);
 
   useEffect(() => {
-    const p = new URLSearchParams(window.location.search);
-    const sub = p.get("subject"),
-      unit = p.get("unit");
-    if (sub) {
-      const s = mockSubjects.find(
-        (s) => s.name.toLowerCase().replace(/\s/g, "_") === sub,
-      );
-      if (s) {
-        let u = allUnits.filter((u) => u.subjectId === s.id.toString());
-        if (unit) u = u.filter((u) => u.name === unit);
-        setUnitsForWizard(u);
+    let ignore = false;
+
+    async function loadQuizLibrary() {
+      setIsLoading(true);
+      setPageError("");
+      try {
+        const subjects = await getLibrarySubjects();
+        if (ignore) return;
+
+        const allLibraryUnits = mapLibraryUnits(subjects);
+        const p = new URLSearchParams(window.location.search);
+        const subjectParam = p.get("subjectGroupKey") || p.get("subject") || "";
+        const unitIdParam = p.get("unitId") || "";
+        const unitParam = p.get("unit") || "";
+        let scopedUnits = allLibraryUnits;
+
+        if (subjectParam && subjectParam !== "all") {
+          scopedUnits = scopedUnits.filter(
+            (unit) =>
+              unit.subjectGroupKey === subjectParam ||
+              unit.subjectId === subjectParam ||
+              unit.subjectName.toLowerCase().replace(/\s/g, "_") === subjectParam,
+          );
+        }
+        if (unitIdParam) {
+          scopedUnits = scopedUnits.filter((unit) => String(unit.id) === String(unitIdParam));
+        } else if (unitParam) {
+          scopedUnits = scopedUnits.filter((unit) => unit.name === unitParam);
+        }
+
+        setLibrarySubjects(subjects);
+        setQuizBanks(mapQuizBanks(subjects));
+        setUnitsForWizard(scopedUnits.length ? scopedUnits : allLibraryUnits);
+        if (subjectParam || unitIdParam || unitParam) {
+          setSetupOpen(true);
+        }
+      } catch (error: any) {
+        if (!ignore) {
+          setLibrarySubjects([]);
+          setQuizBanks([]);
+          setUnitsForWizard([]);
+          setPageError(error?.message || "Unable to load uploaded subjects.");
+        }
+      } finally {
+        if (!ignore) setIsLoading(false);
       }
-      setSetupOpen(true);
     }
-    setIsLoading(false);
+
+    loadQuizLibrary();
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
-  const handleStart = (cfg: QuizConfig) => {
+  const handleStart = async (cfg: QuizConfig) => {
+    const selectedUnit = unitsForWizard.find((unit) => unit.id === cfg.unitId);
+    if (!selectedUnit) {
+      throw new Error("Please select an uploaded unit before launching the quiz.");
+    }
+    const generated = await generateQuiz({
+      unitId: selectedUnit.id,
+      candidateId: candidateContext.candidateId,
+      candidateName: candidateContext.candidateName,
+      difficulty: cfg.difficulty.toLowerCase(),
+      numQuestions: Number(cfg.numQuestions || 10),
+    });
+    const generatedQuestions = normalizeQuizQuestions(generated);
+    if (!generatedQuestions.length) {
+      throw new Error("The quiz API did not return usable questions for this unit.");
+    }
     setQuizConfig(cfg);
-    // Cap requested count to however many questions we actually have
-    const requested = parseInt(cfg.numQuestions || "10", 10);
-    const cnt = Math.min(requested, QUESTIONS.length);
-    const qs = QUESTIONS.slice(0, cnt);
+    setQuizId(String(generated?.quiz_id || generated?.quizId || generated?.id || ""));
+    const requested = Number(cfg.numQuestions || generatedQuestions.length || 10);
+    const qs = generatedQuestions.slice(0, requested);
     setQuestions(qs);
     setTimeLeft(parseInt(cfg.timeLimit || "15", 10) * 60);
-    setAnswers(Array(cnt).fill(null));
-    setStatuses(Array(cnt).fill("unanswered"));
+    setAnswers(Array(qs.length).fill(null));
+    setStatuses(Array(qs.length).fill("unanswered"));
     setQIdx(0);
     setQuizStarted(true);
+    setShowResult(false);
     setSetupOpen(false);
   };
 
@@ -915,13 +1006,26 @@ const QuizPage = ({ params }: { params?: { id?: string } }) => {
     setStatuses(s);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setShowResult(true);
     // Guard: only count indices where both question and answer exist
     const score = answers.reduce((acc, a, i) => {
       const q = questions[i];
       return q && a !== null && a === q.correctAnswer ? acc + 1 : acc;
     }, 0);
+    if (quizId) {
+      submitQuiz({
+        quizId,
+        candidateId: candidateContext.candidateId,
+        answers: answers.map((answer, index) => ({
+          question_id: questions[index]?.id || String(index + 1),
+          answer:
+            answer === null
+              ? ""
+              : questions[index]?.options?.[answer] || String(answer),
+        })),
+      }).catch(() => null);
+    }
     try {
       const rec = JSON.parse(localStorage.getItem("recentExams") || "[]");
       rec.unshift({
@@ -1183,12 +1287,12 @@ const QuizPage = ({ params }: { params?: { id?: string } }) => {
               </div>
               <div className="qp-hero-stats">
                 <div className="qp-hero-stat">
-                  <div className="qp-hero-sv">{QUIZ_BANK.length}</div>
+                  <div className="qp-hero-sv">{quizBanks.length}</div>
                   <div className="qp-hero-sl">Quiz Banks</div>
                 </div>
                 <div className="qp-hero-div" />
                 <div className="qp-hero-stat">
-                  <div className="qp-hero-sv">{allUnits.length}</div>
+                  <div className="qp-hero-sv">{mapLibraryUnits(librarySubjects).length}</div>
                   <div className="qp-hero-sl">Topics</div>
                 </div>
                 <div className="qp-hero-div" />
@@ -1203,8 +1307,13 @@ const QuizPage = ({ params }: { params?: { id?: string } }) => {
           {/* Quiz Bank */}
           <div>
             <div className="qp-section-title">Available Quiz Banks</div>
+            {pageError && (
+              <div className="qp-card" style={{ padding: 16, marginBottom: 14, color: "#ef4444", fontSize: 13, fontWeight: 700 }}>
+                {pageError}
+              </div>
+            )}
             <div className="qp-bank-grid">
-              {QUIZ_BANK.map((qb, i) => (
+              {quizBanks.map((qb, i) => (
                 <motion.div
                   key={qb.id}
                   initial={{ opacity: 0, y: 16 }}
@@ -1214,7 +1323,13 @@ const QuizPage = ({ params }: { params?: { id?: string } }) => {
                 >
                   <div
                     className="qp-card qp-bank-card"
-                    onClick={() => setSetupOpen(true)}
+                    onClick={() => {
+                      const units = mapLibraryUnits(librarySubjects).filter(
+                        (unit) => unit.subjectGroupKey === qb.id,
+                      );
+                      setUnitsForWizard(units);
+                      setSetupOpen(true);
+                    }}
                   >
                     <div
                       className="qp-bank-card-accent"
@@ -1243,6 +1358,14 @@ const QuizPage = ({ params }: { params?: { id?: string } }) => {
                   </div>
                 </motion.div>
               ))}
+              {!quizBanks.length && (
+                <div className="qp-card qp-bank-card">
+                  <div className="qp-bank-card-title">No uploaded subjects found</div>
+                  <div className="qp-bank-card-sub">
+                    Upload subject units first, then return here to generate quizzes.
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

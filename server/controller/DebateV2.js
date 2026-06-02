@@ -558,15 +558,27 @@ const controller = {
         });
       }
 
-      const pythonRespond = await callPython({
-        method: "post",
-        path: "/debate/room/respond",
-        data: {
-          session_id: sessionId,
-          candidate_id: candidate.candidate_id,
-          message: req.body.message,
-        },
-      });
+      // Wrap Python respond in try/catch so a 500 (e.g. Qdrant timeout,
+      // OpenAI error) does NOT abort the turn. The message is always saved
+      // and the next speaker is always picked — Python failure surfaces as a
+      // visible warning, not a frozen turn.
+      let pythonRespond = null;
+      let pythonRespondWarning = null;
+      try {
+        pythonRespond = await callPython({
+          method: "post",
+          path: "/debate/room/respond",
+          data: {
+            session_id: sessionId,
+            candidate_id: candidate.candidate_id,
+            message: req.body.message,
+          },
+        });
+      } catch (pythonErr) {
+        // Non-fatal: record the error as a warning and continue advancing the turn
+        pythonRespondWarning = pythonErr?.message || "AI moderation temporarily unavailable.";
+        console.warn("[DEBATE] Python respond failed (non-fatal):", pythonRespondWarning);
+      }
 
       const pythonRoom = await callPython({
         path: `/debate/room/${encodeURIComponent(sessionId)}`,
@@ -581,16 +593,29 @@ const controller = {
         candidate_id: candidate.candidate_id,
       });
 
-      const updatedAfterTurn = await saveRoomRoundSubmission({
-        sessionId,
-        candidateId: candidate.candidate_id,
-        candidateName: candidate.candidate_name,
-        team,
-        message: req.body.message,
-        roundNumber: currentRound.roundNumber || 1,
-        metadata: pythonRespond,
-        warnings,
-      });
+      // Wrap saveRoomRoundSubmission so a Mongoose validation error (e.g. the
+      // [String] cast error when Python returns warning objects) never aborts the
+      // turn. The turn message is always saved and the next speaker always advances.
+      let updatedAfterTurn;
+      let saveWarning = null;
+      try {
+        updatedAfterTurn = await saveRoomRoundSubmission({
+          sessionId,
+          candidateId: candidate.candidate_id,
+          candidateName: candidate.candidate_name,
+          team,
+          message: req.body.message,
+          roundNumber: currentRound.roundNumber || 1,
+          metadata: pythonRespond,
+          warnings,
+        });
+      } catch (saveErr) {
+        // Log for debugging but continue — fetch the latest session state so
+        // we can still advance to the next speaker
+        console.warn("[DEBATE] saveRoomRoundSubmission failed (non-fatal):", saveErr?.message);
+        saveWarning = saveErr?.message || "Session save partially failed.";
+        updatedAfterTurn = await getSession(sessionId).catch(() => null);
+      }
 
       const remainingTeams = updatedAfterTurn?.currentRound?.awaitingTeams || [];
       if (remainingTeams.length) {
@@ -599,7 +624,7 @@ const controller = {
         const pending = await updateRoomState(sessionId, {
           status: "active",
           currentRound: {
-            ...(updatedAfterTurn.currentRound || {}),
+            ...(updatedAfterTurn?.currentRound || {}),
             phase: "team_turn",
             activeTeam: nextTeam,
             currentSpeakerId: nextSpeaker?.id || null,
@@ -609,8 +634,9 @@ const controller = {
         return res.status(200).json({
           status: true,
           data: {
-            ...pythonRespond,
+            ...(pythonRespond || {}),
             warnings,
+            pythonWarning: pythonRespondWarning || saveWarning || null,
             liveSession: pending,
             waitingForAi: false,
           },
@@ -667,13 +693,15 @@ const controller = {
       return res.status(200).json({
         status: true,
         data: {
-          ...pythonRespond,
+          ...(pythonRespond || {}),
           warnings,
           aiResponse: aiResponse || null,
           pythonWarning:
-            !aiResponse && !hasAiStudent
+            pythonRespondWarning ||
+            saveWarning ||
+            (!aiResponse && !hasAiStudent
               ? "Python room API did not return a round-level AI response for this even-team room."
-              : null,
+              : null),
           waitingForAi: false,
           liveSession: finalSession,
         },

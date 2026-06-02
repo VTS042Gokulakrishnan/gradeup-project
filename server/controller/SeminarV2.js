@@ -117,6 +117,10 @@ const controller = {
       const sessionId = requestedSessionId || `seminar-room-${candidate.candidate_id}-${Date.now()}`;
       const shareLink = req.body.roomLink || req.body.shareLink || null;
 
+      const maxParticipants = req.body.maxParticipants
+        ? Number(req.body.maxParticipants)
+        : null;
+
       const liveSession = await upsertSession({
         sessionType: "seminar",
         sessionId,
@@ -132,6 +136,7 @@ const controller = {
         metadata: {
           createdVia: "seminar_room",
           session_mode: "main",
+          maxParticipants,
         },
       });
 
@@ -515,12 +520,41 @@ const controller = {
       if (!existingSession) {
         return res.status(404).json({ status: false, message: "Seminar session not found" });
       }
+
+      // ── Participant limit enforcement ──────────────────────────────────────
+      const maxParticipants = existingSession?.metadata?.maxParticipants
+        ? Number(existingSession.metadata.maxParticipants)
+        : null;
+
+      if (maxParticipants && maxParticipants > 0) {
+        // Count non-host, non-AI participants already in session
+        const STALE_MS = 35_000;
+        const now = Date.now();
+        const activeParticipants = (existingSession.participants || []).filter((p) => {
+          if (p.isHost || p.isAi) return false;
+          // Check if this is the same candidate rejoining
+          if (String(p.participantId) === String(candidate.candidate_id)) return false;
+          if (!p.lastSeenAt) return true;
+          return now - new Date(p.lastSeenAt).getTime() < STALE_MS;
+        });
+
+        if (activeParticipants.length >= maxParticipants) {
+          return res.status(403).json({
+            status: false,
+            code: "limit_exceeded",
+            message: `This seminar has reached its participant limit of ${maxParticipants}. Please contact the host.`,
+            maxParticipants,
+          });
+        }
+      }
+
       const liveSession = await touchParticipant({
         sessionId,
         candidateId: candidate.candidate_id,
         candidateName: candidate.candidate_name,
         role: req.body.role || "observer",
         status: existingSession?.status === "active" ? "active" : "waiting",
+        lastSeenAt: new Date(),
       });
 
       return res.status(200).json({ status: true, data: liveSession });

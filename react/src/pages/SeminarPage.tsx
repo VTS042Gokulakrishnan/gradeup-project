@@ -1894,6 +1894,8 @@ function SeminarSetupIntegrated({ onBack, onLaunch }) {
   const [onlineSessions, setOnlineSessions] = useState([]);
   const [inviteInput, setInviteInput] = useState("");
   const [invitees, setInvitees] = useState([]);
+  const [maxParticipants, setMaxParticipants] = useState("10");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const nameInitializedRef = useRef(false);
   const roomId = useRef(genId());
   const roomLink = genRoomLink(roomId.current);
@@ -2062,9 +2064,9 @@ function SeminarSetupIntegrated({ onBack, onLaunch }) {
   const presenterSteps = [
     { label: "Choose mode", done: seminarMode !== "" },
     { label: "Enter your name", done: name.trim().length > 0 },
-    { label: "Allow microphone", done: perm === "granted" },
     { label: "Select subject and unit", done: !!subject && !!unit && !!selectedUnitId },
     { label: "Select topic", done: !!finalTopic },
+    { label: "Allow microphone (in next step)", done: perm === "granted" },
   ];
   const observerSteps = [
     { label: "Choose observer mode", done: seminarMode === "session" && sessionSubMode === "observer" },
@@ -2078,7 +2080,9 @@ function SeminarSetupIntegrated({ onBack, onLaunch }) {
     name.trim().length > 0 &&
     (seminarMode === "session" && sessionSubMode === "observer"
       ? canJoinObserver
-      : perm === "granted" && !!subject && !!selectedUnitId && !!finalTopic);
+      : !!subject && !!selectedUnitId && !!finalTopic);
+  // Note: mic permission is checked inside the confirm modal, not here.
+  // This lets users open the modal and grant mic there, matching debate flow.
 
   const leftFeatures =
     seminarMode === "prepare"
@@ -2115,12 +2119,24 @@ function SeminarSetupIntegrated({ onBack, onLaunch }) {
       if (seminarMode === "session" && sessionSubMode === "observer") {
         const sessionId = selectedSession?.sessionId || selectedSession?.id || parseSeminarSessionId(joinId);
         if (!sessionId) throw new Error("Enter a valid seminar link or choose a live session.");
-        const joinedSession = await joinSeminarSession({
-          sessionId,
-          candidateId: candidate.candidateId,
-          candidateName: candidate.candidateName,
-          role: "observer",
-        });
+        let joinedSession;
+        try {
+          joinedSession = await joinSeminarSession({
+            sessionId,
+            candidateId: candidate.candidateId,
+            candidateName: candidate.candidateName,
+            role: "observer",
+          });
+        } catch (joinError: any) {
+          const code = joinError?.code || joinError?.data?.code || "";
+          const max = joinError?.maxParticipants || joinError?.data?.maxParticipants || "";
+          if (code === "limit_exceeded") {
+            throw new Error(
+              `⚠️ This seminar is full${max ? ` (limit: ${max})` : ""}. Please contact the host or try again later.`
+            );
+          }
+          throw joinError;
+        }
         onLaunch({
           name,
           candidateId: candidate.candidateId,
@@ -2158,6 +2174,7 @@ function SeminarSetupIntegrated({ onBack, onLaunch }) {
           candidateId: candidate.candidateId,
           candidateName: candidate.candidateName,
           topic: finalTopic,
+          maxParticipants: maxParticipants === "0" ? null : Number(maxParticipants) || null,
         });
         onLaunch({
           name,
@@ -2180,6 +2197,8 @@ function SeminarSetupIntegrated({ onBack, onLaunch }) {
           initialFacilitatorMessage: "",
           seminarMode: "session",
           sessionSubMode: "presenter",
+          maxParticipants: maxParticipants === "0" ? null : Number(maxParticipants) || null,
+          uploadedFile: uploadedFile || null,
         });
         return;
       }
@@ -2385,6 +2404,50 @@ function SeminarSetupIntegrated({ onBack, onLaunch }) {
                         </div>
                       ))}
                     </div>
+                    <div className="sec-div">Participant Limit</div>
+                    <div className="fi">
+                      <label className="fl">Max Participants</label>
+                      <select className="finput" value={maxParticipants} onChange={(e) => setMaxParticipants(e.target.value)}>
+                        <option value="5">2 – 5 participants</option>
+                        <option value="10">5 – 10 participants</option>
+                        <option value="20">10 – 20 participants</option>
+                        <option value="custom">Custom number…</option>
+                        <option value="0">No limit</option>
+                      </select>
+                    </div>
+                    {maxParticipants === "custom" && (
+                      <div className="fi" style={{ marginTop: 6 }}>
+                        <label className="fl">Enter limit</label>
+                        <input
+                          className="finput"
+                          type="number"
+                          min={1}
+                          max={200}
+                          placeholder="e.g. 15"
+                          onChange={(e) => setMaxParticipants(e.target.value)}
+                        />
+                      </div>
+                    )}
+                    <div className="sec-div">Presentation File</div>
+                    <div className="fi">
+                      <label className="fl">Upload PDF / PPT (optional)</label>
+                      <input
+                        className="finput"
+                        type="file"
+                        accept=".pdf,.ppt,.pptx"
+                        style={{ padding: "7px 10px", cursor: "pointer" }}
+                        onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
+                      />
+                      {uploadedFile && (
+                        <div style={{ marginTop: 6, fontSize: 11, color: "var(--em)", display: "flex", alignItems: "center", gap: 6 }}>
+                          📎 {uploadedFile.name}
+                          <button style={{ fontSize: 10, background: "none", border: "none", cursor: "pointer", color: "var(--t3)" }} onClick={() => setUploadedFile(null)}>✕ Remove</button>
+                        </div>
+                      )}
+                      <div style={{ fontSize: 10, color: "var(--t3)", marginTop: 4 }}>
+                        This file will be sent to the AI when the seminar starts.
+                      </div>
+                    </div>
                     <div className="sec-div">Invite Observers</div>
                     <div className="obs-join-input-row" style={{ marginBottom: 10 }}>
                       <input className="finput" placeholder="Add observer email or name…" style={{ flex: 1 }} value={inviteInput} onChange={(event) => setInviteInput(event.target.value)} />
@@ -2433,7 +2496,6 @@ function SeminarSetupIntegrated({ onBack, onLaunch }) {
                       return <div key={index} className={`step-r ${done ? "done" : act ? "act" : "pend"}`}><div className="step-num">{done ? "✓" : index + 1}</div><div className="step-lbl">{step.label}</div></div>;
                     })}
                   </div>
-                  {perm !== "granted" && <button className="btn-s" style={{ width: "100%", justifyContent: "center", marginBottom: 8 }} onClick={request}>🎤 Allow Microphone</button>}
                   <button className="btn-p" onClick={() => setShowConfirm(true)} disabled={!canLaunch || (seminarType === "schedule" && !scheduled)}>
                     {seminarMode === "prepare" ? "🤖 Start AI Preparation" : sessionSubMode === "observer" ? "👁️ Join as Observer" : "🎙️ Launch Seminar Room"}
                   </button>
@@ -2455,13 +2517,48 @@ function SeminarSetupIntegrated({ onBack, onLaunch }) {
               <div style={{ fontSize: 10.5, color: "rgba(255,255,255,.4)" }}>{seminarMode === "prepare" ? "Launching AI practice" : sessionSubMode === "observer" ? "Joining as Observer" : "Preparing Seminar Room"}</div>
             </div>
             <div className="mb" style={{ background: "#0c1422" }}>
-              {(selectedSession || finalTopic) && <div style={{ padding: "9px 11px", borderRadius: 9, background: "rgba(45,156,219,.06)", border: "1px solid rgba(45,156,219,.2)", marginBottom: 9, fontSize: 11.5, fontWeight: 600, color: "var(--sky)" }}>
-                {sessionSubMode === "observer" ? `👁️ Joining: ${selectedSession?.topic || selectedSession?.title || parseSeminarSessionId(joinId)}` : `🎓 Topic: ${finalTopic}`}
-              </div>}
-              {(seminarMode !== "session" || sessionSubMode !== "observer") && <button className={`perm-btn ${perm === "granted" ? "granted" : perm === "denied" ? "denied" : "req"}`} style={{ width: "100%", justifyContent: "center", fontSize: 13, padding: "10px" }} onClick={request} disabled={perm === "requesting" || perm === "granted"}>
-                <span style={{ fontSize: 18 }}>{perm === "granted" ? "🎤" : perm === "denied" ? "⚠️" : "🎙️"}</span>
-                {perm === "granted" ? "Microphone Active" : perm === "requesting" ? "Checking microphone..." : "Allow microphone"}
-              </button>}
+              {(selectedSession || finalTopic) && (
+                <div style={{ padding: "9px 11px", borderRadius: 9, background: "rgba(45,156,219,.06)", border: "1px solid rgba(45,156,219,.2)", marginBottom: 12, fontSize: 11.5, fontWeight: 600, color: "var(--sky)" }}>
+                  {sessionSubMode === "observer" ? `👁️ Joining: ${selectedSession?.topic || selectedSession?.title || parseSeminarSessionId(joinId)}` : `🎓 Topic: ${finalTopic}`}
+                </div>
+              )}
+              {(seminarMode !== "session" || sessionSubMode !== "observer") && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {/* Mic permission card — matches debate component style */}
+                  <button
+                    className={`perm-btn ${perm === "granted" ? "granted" : perm === "denied" ? "denied" : "req"}`}
+                    style={{ width: "100%", justifyContent: "center", fontSize: 13, padding: "11px 14px" }}
+                    onClick={request}
+                    disabled={perm === "requesting" || perm === "granted"}
+                  >
+                    <span style={{ fontSize: 20 }}>
+                      {perm === "granted" ? "🎤" : perm === "denied" ? "⚠️" : "🎙️"}
+                    </span>
+                    <span>
+                      {perm === "granted"
+                        ? "Microphone Active — ready to go!"
+                        : perm === "requesting"
+                          ? "Checking microphone…"
+                          : perm === "denied"
+                            ? "Microphone Blocked — click to retry"
+                            : "Allow Microphone Access"}
+                    </span>
+                  </button>
+                  {perm === "denied" && (
+                    <div style={{ padding: "9px 11px", borderRadius: 9, background: "rgba(239,68,68,.08)", border: "1px solid rgba(239,68,68,.18)", fontSize: 11, color: "#fca5a5", lineHeight: 1.6 }}>
+                      🔒 <strong>Desktop:</strong> Click the lock icon in your address bar → Microphone → Allow → Retry.<br />
+                      📱 <strong>Mobile (Chrome):</strong> Tap lock icon → Permissions → Microphone → Allow → Retry.<br />
+                      📱 <strong>Mobile (Safari):</strong> Settings app → Safari → Microphone → Allow → Retry.
+                    </div>
+                  )}
+                  {perm === "granted" && (
+                    <div style={{ padding: "8px 11px", borderRadius: 9, background: "rgba(0,195,122,.07)", border: "1px solid rgba(0,195,122,.18)", fontSize: 11, color: "#5ee3b7", display: "flex", alignItems: "center", gap: 7 }}>
+                      <span style={{ fontSize: 14 }}>✅</span>
+                      Microphone is active. You can now enter the seminar.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="mf" style={{ borderColor: "rgba(255,255,255,.08)", background: "#0c1422", flexDirection: "column", gap: 7 }}>
               <button className="btn-p" onClick={handleJoin} disabled={joining || ((seminarMode !== "session" || sessionSubMode !== "observer") && perm !== "granted")}>
@@ -4363,7 +4460,14 @@ function PresenterRoom({config,onEnd}) {
   const currentCandidateId = String(config.candidateId || config.liveSession?.hostCandidateId || "");
   const isGuestUser = Boolean(config.isGuest);
   const participantList = (liveSession?.participants || []).filter((item)=>!item.isAi);
-  const observerList = participantList.filter((item)=>!item.isHost);
+  // Only show participants who are active or seen within the last 35 seconds.
+  // Removes ghost participants who closed the tab or left without explicit leave.
+  const STALE_MS = 35_000;
+  const observerList = participantList.filter((item) => {
+    if (item.isHost) return false;
+    if (!item.lastSeenAt) return true; // no timestamp — keep
+    return Date.now() - new Date(item.lastSeenAt).getTime() < STALE_MS;
+  });
   const pendingRequests = getPendingSeminarSpeakRequests(liveSession);
   const pendingRequest = pendingRequests[0] || null;
   const roomStatus = liveSession?.status || "waiting";
@@ -4449,6 +4553,7 @@ function PresenterRoom({config,onEnd}) {
         candidateId: currentCandidateId,
         candidateName: config.name,
         topic: config.topic,
+        uploadedFile: config.uploadedFile || null,
       });
       setLiveSession(response?.liveSession || response || null);
       toast$("Seminar session started.","success");
@@ -4593,7 +4698,13 @@ function PresenterRoom({config,onEnd}) {
           </div>
           <div style={{background:"var(--surf)",border:"1px solid var(--bdr)",borderRadius:20,padding:18,display:"flex",flexDirection:"column",minHeight:0}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-              <div><div style={{fontSize:14,fontWeight:800,color:"var(--t1)"}}>Joined Users</div><div style={{fontSize:11.5,color:"var(--t2)"}}>{observerList.length} participant(s) waiting</div></div>
+              <div>
+                <div style={{fontSize:14,fontWeight:800,color:"var(--t1)"}}>Joined Users</div>
+                <div style={{fontSize:11.5,color:"var(--t2)"}}>
+                  {observerList.length} participant(s) waiting
+                  {config.maxParticipants ? ` · Limit: ${config.maxParticipants}` : " · No limit"}
+                </div>
+              </div>
               <button className="btn-s" onClick={()=>syncSession(false)}>Refresh</button>
             </div>
             <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:8}}>

@@ -1462,23 +1462,38 @@ export default function AITutorModern() {
       setChatHistory(mappedHistory);
 
       setCurrentChatId((prev) => {
+        const refId = currentChatIdRef.current;
+        console.log('[loadConversationList] setCurrentChatId called', {
+          prev,
+          refId,
+          pendingFresh: pendingFreshChatRef.current,
+          historyIds: mappedHistory.map((c: ChatHistory) => c.id),
+        });
+
         // If user clicked New Chat, stay on empty new chat.
         if (pendingFreshChatRef.current) {
           pendingFreshChatRef.current = false;
+          console.log('[loadConversationList] → pendingFresh=true, returning null');
           return null;
         }
 
-        // Keep current chat only if it still exists.
-        if (
-          prev &&
-          mappedHistory.some((chat: ChatHistory) => chat.id === prev)
-        ) {
-          return prev;
+        // Use the ref as the source of truth — it holds the ID set by
+        // sendMessage synchronously, even before React flushes state.
+        const activeId = prev ?? refId;
+
+        if (activeId && mappedHistory.some((chat: ChatHistory) => chat.id === activeId)) {
+          console.log('[loadConversationList] → activeId found in history, keeping:', activeId);
+          return activeId;
         }
 
-        // IMPORTANT:
-        // Do NOT auto-select first history item.
-        // Auto-selecting mappedHistory[0] is what brings back the old chat.
+        // If activeId exists but isn't in the list yet (history fetch raced
+        // ahead of the server persisting the new conversation), keep it.
+        if (activeId) {
+          console.warn('[loadConversationList] ⚠️ activeId NOT in history yet (race?) — keeping anyway:', activeId);
+          return activeId;
+        }
+
+        console.log('[loadConversationList] → no activeId, returning null');
         return null;
       });
 
@@ -1493,10 +1508,15 @@ export default function AITutorModern() {
         variant: "destructive",
       });
       setChatHistory([]);
+      console.error('[loadConversationList] ❌ fetch failed — resetting currentChatId → null');
       setCurrentChatId(null);
+      currentChatIdRef.current = null;
       return [];
     }
-  }, [candidateContext.candidateId, selectedSubjectData?.value, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [candidateContext.candidateId, selectedSubjectData?.value]);
+  // ↑ INTENTIONALLY omitting `toast` — it recreates every render in most
+  // useToast implementations and would cause an infinite loop if included.
 
   const loadConversationMessages = useCallback(
     async (conversationId: string) => {
@@ -1537,12 +1557,18 @@ export default function AITutorModern() {
         return [];
       }
     },
-    [candidateContext.candidateId, toast],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [candidateContext.candidateId],
+    // ↑ INTENTIONALLY omitting `toast` — it recreates on every render and
+    // would make this callback unstable, causing the currentChatId useEffect
+    // to re-fire on every render and wipe live messages with stale server data.
   );
   const handleSubjectSelect = (subjectId: number) => {
     setIsLoading(true);
     setSelectedSubject(subjectId);
+    console.log('[handleSubjectSelect] resetting currentChatId → null (subjectId:', subjectId, ')');
     setCurrentChatId(null);
+    currentChatIdRef.current = null;
     setMessages([]);
     setChatError(null);
     setCurrentMessage("");
@@ -1608,6 +1634,7 @@ export default function AITutorModern() {
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    console.log('[useEffect:syncRef] currentChatId state changed → syncing ref:', currentChatId);
     currentChatIdRef.current = currentChatId;
   }, [currentChatId]);
 
@@ -1615,7 +1642,9 @@ export default function AITutorModern() {
     if (newUnit === selectedUnit) return;
     setIsLoading(true);
     setChatError(null);
+    console.log('[handleUnitChange] resetting currentChatId → null (unit changed to:', newUnit, ')');
     setCurrentChatId(null);
+    currentChatIdRef.current = null;
     setMessages([]);
     setCurrentMessage("");
     setSelectedUnit(newUnit);
@@ -1670,17 +1699,36 @@ export default function AITutorModern() {
   }, [selectedUnit]);
   useEffect(() => {
     if (!selectedSubjectData || view !== "tutor") return;
+    console.log('[useEffect:loadConversationList] triggered — subject:', selectedSubjectData?.value, 'unit:', selectedUnit);
     loadConversationList();
-  }, [loadConversationList, selectedUnit, selectedSubjectData, view]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSubjectData?.value, selectedUnit, view]);
+  // ↑ Use primitive selectedSubjectData?.value (string) NOT the object reference.
+  // Do NOT include loadConversationList — it's a useCallback that recreates when
+  // its own deps change, causing this effect to re-fire → infinite API loop.
 
   useEffect(() => {
+    console.log('[useEffect:currentChatId] fired — currentChatId:', currentChatId, '| ref:', currentChatIdRef.current);
     if (!currentChatId) {
+      console.warn('[useEffect:currentChatId] ⚠️ currentChatId is null — clearing messages');
       conversationLoadRequestRef.current += 1;
       setMessages([]);
       return;
     }
-    loadConversationMessages(currentChatId);
-  }, [currentChatId, loadConversationMessages]);
+    // Only fetch stored messages when switching to an EXISTING chat.
+    // Do NOT fetch for a brand-new session that was just created by sendMessage —
+    // the server won't have messages yet and the fetch would wipe the live chat.
+    // We detect "existing" by checking if this id already exists in chatHistory.
+    const isExistingChat = chatHistory.some((c) => c.id === currentChatId);
+    console.log('[useEffect:currentChatId] isExistingChat:', isExistingChat, 'for id:', currentChatId);
+    if (isExistingChat) {
+      loadConversationMessages(currentChatId);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentChatId]);
+  // ↑ INTENTIONALLY only depending on currentChatId (primitive string).
+  // Adding loadConversationMessages causes it to re-fire on every render
+  // (because toast inside it is unstable), wiping live messages mid-conversation.
 
   useEffect(() => {
     const enableAudio = async () => {
@@ -1974,16 +2022,25 @@ export default function AITutorModern() {
         throw new Error("Please select a unit before asking the AI Tutor.");
       }
 
-      // Use ref (sync) not state (async) — ensures same conversationId
-      // is sent on every message within the same session even if React
-      // hasn't flushed the setCurrentChatId state update yet.
-      const activeConversationId = currentChatIdRef.current || currentChatId || undefined;
+      // The API never returns a conversationId in its response.
+      // Generate one client-side on the FIRST message of a new session and
+      // reuse it for every subsequent message — keeping all messages grouped
+      // under one conversation ID for the duration of the session.
+      let sessionId = currentChatIdRef.current || currentChatId;
+      if (!sessionId) {
+        sessionId = `session-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        console.log('[sendMessage] 🆕 New session — generated client-side id:', sessionId);
+        currentChatIdRef.current = sessionId;
+        setCurrentChatId(sessionId);
+      }
+
+      console.log('[sendMessage] Sending with conversationId:', sessionId);
       const data = await askTutor({
         unitId: selectedUnitId,
         candidateId: candidateContext.candidateId,
         candidateName: candidateContext.candidateName,
         query: userMsg.content,
-        conversationId: activeConversationId,
+        conversationId: sessionId,
         limit: 5,
       });
       const assistantText =
@@ -2002,23 +2059,17 @@ export default function AITutorModern() {
             ? selectedSubjectData?.value
             : undefined,
       };
-const resolvedConversationId =
-  data?.meta?.conversation?.id ||
-  data?.meta?.conversation?.conversationId ||
-  data?.conversationId ||
-  data?.id ||
-  currentChatId ||
-  null;
-
-pendingConversationIdRef.current = null;
-
-if (resolvedConversationId) {
-  setCurrentChatId(resolvedConversationId);
-  currentChatIdRef.current = resolvedConversationId;
-}
+      // Ensure ref stays set after the await (defensive against any mid-flight reset)
+      if (!currentChatIdRef.current) {
+        currentChatIdRef.current = sessionId;
+        setCurrentChatId(sessionId);
+      }
+      console.log('[sendMessage] ✅ Session held:', currentChatIdRef.current);
       setMessages((prev) => [...prev, assistantMsg]);
-      await loadConversationList();
-      // Auto-speak removed — user triggers reading via the speaker button manually.
+      // Refresh sidebar after a short delay — gives the server time to persist
+      // the new conversation before we fetch the list. Avoids the race that
+      // previously caused loadConversationList to not find the new id and reset it.
+      setTimeout(() => loadConversationList(), 1500);
     } catch (err) {
       // ← KEY FIX: show error inline, do NOT reset chat or start new one
       setChatError(
@@ -2056,8 +2107,10 @@ const startNewChat = () => {
   const loadChat = (chat: ChatHistory) => {
     pendingConversationIdRef.current = null;
     conversationLoadRequestRef.current += 1;
+    console.log('[loadChat] switching to chat id:', chat.id);
     setMessages(chat.messages);
     setCurrentChatId(chat.id);
+    currentChatIdRef.current = chat.id;
     setCurrentMessage("");
     setChatError(null);
     const subj = subjects.find((s) => s.label === chat.subject);
@@ -2085,8 +2138,10 @@ const startNewChat = () => {
       return;
     }
     if (currentChatId === chatId) {
+      console.log('[deleteChat] deleted active chat, resetting currentChatId → null');
       setMessages([]);
       setCurrentChatId(null);
+      currentChatIdRef.current = null;
       pendingConversationIdRef.current = null;
     }
   };
@@ -2096,9 +2151,11 @@ const startNewChat = () => {
       await clearTutorHistory({
         candidateId: candidateContext.candidateId,
       });
+      console.log('[clearAllHistory] resetting currentChatId → null');
       setChatHistory([]);
       setMessages([]);
       setCurrentChatId(null);
+      currentChatIdRef.current = null;
       pendingConversationIdRef.current = null;
       toast({
         title: "History cleared",

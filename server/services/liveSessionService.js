@@ -15,7 +15,7 @@ function toParticipant(candidateId, candidateName, role = "participant", extra =
     teamOrder: Number.isFinite(extra.teamOrder) ? Number(extra.teamOrder) : null,
     status: extra.status || "waiting",
     warningCount: Number(extra.warningCount || 0),
-    warnings: Array.isArray(extra.warnings) ? extra.warnings : [],
+    warnings: normalizeWarnings(Array.isArray(extra.warnings) ? extra.warnings : []),
     joinedAt: extra.joinedAt || now(),
     lastSeenAt: now(),
   };
@@ -52,17 +52,16 @@ function normalizeTeams(rawTeams = {}) {
 
 function normalizeWarnings(warnings = []) {
   if (!Array.isArray(warnings)) return [];
-  return warnings.map((warning) =>
-    typeof warning === "string"
-      ? { message: warning, createdAt: now() }
-      : {
-          message: warning.message || warning.content || warning.reason || "Warning",
-          type: warning.type || "warning",
-          candidateId: warning.candidateId || warning.candidate_id || null,
-          createdAt: warning.createdAt || warning.timestamp || now(),
-          metadata: warning,
-        },
-  );
+  return warnings.map((warning) => {
+    if (typeof warning === "string") return warning;
+    // Python returns objects like {message, reason, timestamp} — flatten to a string
+    // so Mongoose [String] schema never throws a CastError
+    const message =
+      warning.message || warning.content || warning.reason || "Warning";
+    const reason =
+      warning.reason && warning.reason !== message ? ` — ${warning.reason}` : "";
+    return `${message}${reason}`;
+  });
 }
 
 function normalizeSession(session) {
@@ -290,7 +289,9 @@ async function touchParticipant({
     existing.teamOrder = Number.isFinite(teamOrder) ? Number(teamOrder) : existing.teamOrder;
     existing.status = status || existing.status || "waiting";
     existing.warningCount = Number.isFinite(warningCount) ? Number(warningCount) : existing.warningCount || 0;
-    existing.warnings = Array.isArray(warnings) && warnings.length ? warnings : existing.warnings || [];
+    existing.warnings = Array.isArray(warnings) && warnings.length
+      ? normalizeWarnings(warnings)
+      : existing.warnings || [];
     existing.lastSeenAt = now();
   } else {
     session.participants.push(
