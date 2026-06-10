@@ -1,0 +1,64 @@
+Project Context:
+This is a live debate room application. There is a React frontend component (DebatePage.tsx) and a LiveKit-based audio hook (useDebateLivekit.ts). Multiple participants join a room, an AI moderator greets first, then participants take turns speaking one by one.
+
+Expected Flow:
+
+All participants join the room — everyone's mic is muted, no one can speak, no user turn is assigned until AI finishes
+AI moderator plays an audio greeting immediately and strictly first — no user turn, no user mic activation, no Start Speak under any condition until AI audio fully completes
+After AI greeting audio completes — AI speaking state clears, turn passes to the first assigned participant only
+Only the current speaker's mic becomes active — all other participants remain muted both locally and on LiveKit published track
+Current speaker's speech is transcribed and automatically submitted to the Submit API — this triggers turn passing to the next participant
+After Submit API is called — AI moderator response text appears in chat window only, strictly no audio playback, AI does not speak again at any point after the initial greeting under any circumstance
+Cycle continues — each person gets exactly one turn in order, no one speaks out of turn
+When all participants have completed their turns the round ends
+
+
+Issues We Are Facing:
+Issue 1 — AI must speak strictly first, no fallback user turn:
+
+There must be zero scenario where a user turn starts before AI greeting audio has fully completed
+Even if AI greeting takes time to synthesize or load, all users must stay muted and blocked from speaking until audio playback finishes
+There is no fallback — if AI audio fails, the room should wait or show an error, not silently pass turn to a user
+
+Issue 2 — AI must never speak after Submit API:
+
+After any participant submits their speech, the Submit API returns a response that may include AI moderator text
+This text must appear in the chat window only
+Under absolutely no condition should any audio be synthesized or played for this response
+This restriction is permanent and applies to every submit throughout the entire debate session
+
+Issue 3 — During AI greeting mic state is inconsistent:
+
+The host's mic track shows as ON while AI is speaking — it should be muted like everyone else
+After greeting completes, nobody gets unmuted — AI speaking animation keeps showing, turn never passes
+Start Speak and Stop Speak buttons remain disabled for the participant who is supposed to receive the first turn
+
+Issue 4 — User turn mic and speech capture not working after greeting:
+
+Turn correctly passes to the assigned participant but their speech is not captured
+Start Speak and Stop Speak APIs are never called, no live speaking icon appears
+The underlying LiveKit audio track is disabled when the turn starts so speech capture fails silently — the track must be re-enabled before recording begins
+All participants see Start Speak and Stop Speak as enabled even when it is not their turn — only the current speaker should have those controls active
+
+Issue 5 — Host audio leaking to all participants:
+
+Host's LiveKit published audio track remains active and audible to all participants even when it is not the host's turn
+The muted icon shows correctly on screen but the actual LiveKit track is still transmitting
+Every participant who is not the current speaker must have their LiveKit track truly muted at the track level, not just the UI icon
+
+Issue 6 — Tab close and disconnection handling:
+
+If the host closes the tab or browser during an active session, all remaining participants must immediately see a clear message that the host has ended or cancelled the session — the room should close for everyone
+If a participant closes the tab or browser before the meeting starts, their name must be automatically removed from the waiting room so they do not hold a slot
+If a participant closes the tab or browser after the meeting has started, they must be automatically removed from the active participant list and their turn must be skipped — they should not receive a speaking chance if they have already left the room
+
+
+What needs to be fixed conceptually:
+
+AI greeting must be the absolute first action in every session with no exceptions or fallbacks that allow user turns before it completes
+AI audio playback must be permanently restricted to only the initial greeting — Submit API responses are chat only
+At all times except during their assigned turn, every participant's LiveKit published audio track must be truly muted at the track level, not just the UI
+When a participant's turn begins, their track must be re-enabled before speech capture starts
+The AI greeting completion must reliably trigger turn handoff to the first speaker, unmuting only that one participant
+The muted UI icon must always reflect the true LiveKit track state
+Tab close and disconnect events must be detected and handled in real time for both host and participants with appropriate actions for each case

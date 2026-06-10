@@ -1,0 +1,1 @@
+- [TeamDebateRoom fixes](team-debate-room-fixes.md) — 6 targeted fixes applied to TeamDebateRoom (not LiveAIDebateRoom); key pattern: turn management is sole mic controller.

@@ -3477,10 +3477,9 @@ function TeamDebateRoom({
     ? roomAudioStream.getAudioTracks?.()[0] || null
     : null;
   const micAvailable = Boolean(localAudioTrack);
-  const micEnabled = Boolean(localAudioTrack?.enabled);
-  const micBlocked = !micAvailable || !micEnabled;
   const {
     connected: livekitConnected,
+    isMuted: livekitIsMuted,
     muteLocalAudio: livekitMute,
     unmuteLocalAudio: livekitUnmute,
     disconnect: livekitDisconnect,
@@ -3492,8 +3491,11 @@ function TeamDebateRoom({
     localStream:
       roomAudioStream instanceof MediaStream ? roomAudioStream : null,
     apiBase: `${import.meta.env.VITE_API_BASE_URL || process.env.REACT_APP_API_BASE_URL || ""}`,
-    startMuted: true, // ← add this line
+    startMuted: true,
   });
+  // Mic enabled reflects the true LiveKit track state (Issue 3)
+  const micEnabled = micAvailable && !livekitIsMuted;
+  const micBlocked = !micAvailable || !micEnabled;
   const isCurrentUserSpeaker = activeSpeakerId === String(candidateId);
   const isCurrentUserTurn =
     isCurrentUserSpeaker &&
@@ -3635,6 +3637,30 @@ function TeamDebateRoom({
     currentSpeakerIdRef.current = currentSpeakerId;
   }, [currentSpeakerId]);
 
+  // Track isHost in a ref so the beforeunload handler always has the latest value (Issue 6)
+  const isHostRef = useRef(isHost);
+  useEffect(() => {
+    isHostRef.current = isHost;
+  }, [isHost]);
+
+  // Tab-close / page-unload: host ends the room for everyone; all participants disconnect (Issue 6)
+  useEffect(() => {
+    const handleUnload = () => {
+      livekitDisconnect();
+      if (isHostRef.current && config.sessionId) {
+        const apiBase = `${import.meta.env.VITE_API_BASE_URL || ""}`;
+        navigator.sendBeacon(
+          `${apiBase}/api/v1/debate/room/end`,
+          new Blob([JSON.stringify({ sessionId: config.sessionId })], {
+            type: "application/json",
+          }),
+        );
+      }
+    };
+    window.addEventListener("beforeunload", handleUnload);
+    return () => window.removeEventListener("beforeunload", handleUnload);
+  }, [config.sessionId, livekitDisconnect]);
+
   useEffect(() => {
     console.log("[CLEANUP] team room cleanup registered", {
       sessionId: config.sessionId,
@@ -3714,6 +3740,15 @@ function TeamDebateRoom({
     }
 
     playedModeratorTurnsRef.current.add(String(latestModeratorTurn.id));
+
+    // Only synthesize TTS for the very first (opening) moderator turn.
+    // All subsequent moderator turns after Submit are text-only in the chat feed (Issue 2).
+    if (initialAiPlayedRef.current) {
+      setMeetingReady(true);
+      return;
+    }
+    initialAiPlayedRef.current = true;
+
     const text = String(
       latestModeratorTurn.message || latestModeratorTurn.transcript || "",
     ).trim();
@@ -3807,36 +3842,31 @@ function TeamDebateRoom({
 
         const onGreetingEnd = () => {
           if (cancelled || playbackToken !== greetingPlaybackTokenRef.current) return;
-          console.log("[GREETING] audio play ended — unmuting for first speaker", { sessionId: config.sessionId });
+          console.log("[GREETING] audio play ended — releasing locks for first speaker", { sessionId: config.sessionId });
           setAiIsSpeaking(false);
           setGreetingPending(false);
-          // if (localAudioTrack) localAudioTrack.enabled = true;
-          // livekitUnmute();
-          // activeAudioRef.current = null;
-          const serverSpeakerId = liveSession?.currentRound?.currentSpeakerId;
+          // Use the ref so we read the latest liveSession, not the stale closure value (Issue 4)
+          const latestSession = latestLiveSessionRef.current;
+          const serverSpeakerId = latestSession?.currentRound?.currentSpeakerId;
           if (!serverSpeakerId) {
-            const allParticipants = liveSession?.participants || [];
+            const allParticipants = latestSession?.participants || [];
             const { speakerId, team } = extractFirstSpeakerFromGreeting(text, allParticipants);
             ttsDebug("[TURN] first speaker extracted from greeting", { speakerId, team });
             if (speakerId) {
               setTimeout(() => { startSpeechCaptureRef.current?.(); }, 300);
             }
           } else {
-            const localTrack = config.stream?.getAudioTracks?.()[0];
-            if (localTrack && !localTrack.enabled) {
-              localTrack.enabled = true;
-            }
-            ttsDebug("[TURN] first speaker from server", { serverSpeakerId });
+            ttsDebug("[TURN] first speaker from server — turn management will handle mic", { serverSpeakerId });
           }
         };
 
         greetingAudio.addEventListener("ended", onGreetingEnd);
         greetingAudio.addEventListener("error", (e) => {
           console.error("[GREETING] audio element error", { sessionId: config.sessionId, error: e });
+          // Issue 1: Do NOT unlock the mic here — turn management handles mic enable/disable.
+          // Unlocking unconditionally would give every participant a premature user turn.
           setAiIsSpeaking(false);
           setGreetingPending(false);
-          if (localAudioTrack) localAudioTrack.enabled = true;
-          livekitUnmute();
           activeAudioRef.current = null;
         });
 
@@ -3846,11 +3876,10 @@ function TeamDebateRoom({
           setGreetingPending(true);
         }).catch((err) => {
           console.error("[GREETING] autoplay blocked — user gesture required", { sessionId: config.sessionId, err: err.message });
-          // Autoplay was blocked — release the locks so the room doesn't hang
+          // Issue 1: Autoplay blocked — release AI-speaking lock but do NOT manually enable
+          // the mic. Turn management (mute effect + startSpeechCapture) handles that.
           setAiIsSpeaking(false);
           setGreetingPending(false);
-          if (localAudioTrack) localAudioTrack.enabled = true;
-          livekitUnmute();
           activeAudioRef.current = null;
         });
 
@@ -3858,8 +3887,7 @@ function TeamDebateRoom({
         setMeetingReady(true);
         setAiIsSpeaking(false);
         setGreetingPending(false);
-        if (localAudioTrack) localAudioTrack.enabled = true;
-        livekitUnmute();
+        // Issue 1: Don't unlock mic on TTS error — turn management handles mic state.
         console.error("[TTS] play error", {
           sessionId: config.sessionId,
           message: error instanceof Error ? error.message : String(error),
@@ -4406,7 +4434,15 @@ function TeamDebateRoom({
       return;
     }
     if (localAudioTrack && !localAudioTrack.enabled) {
+      // Issue 4/5: Don't let users manually enable mic between turns — this would leak
+      // audio to other participants. Turn management (mute effect + startSpeechCapture)
+      // is the only authoritative controller of the mic state.
+      if (!isCurrentUserTurn) {
+        toast$("Wait for your turn to speak.", "info");
+        return;
+      }
       localAudioTrack.enabled = true;
+      livekitUnmute();
       debateDebug("[MIC] track enabled", {
         sessionId: config.sessionId,
         readyState: localAudioTrack.readyState,
@@ -4429,17 +4465,20 @@ function TeamDebateRoom({
       stopSpeechCapture();
     }
   }, [aiIsSpeaking, speechRecording]);
- // Mute LiveKit track for any participant who is NOT the current speaker
+ // Mute LiveKit track for any participant who is NOT the current speaker (Issues 4 & 5)
   useEffect(() => {
     if (!meetingReady) return;
     if (isCurrentUserTurn && !aiIsSpeaking) {
       // My turn — unmute handled by startSpeechCapture
       return;
     }
+    // Don't interrupt an active recording mid-speech (host audio leak guard, Issue 5)
+    if (speechRecording) return;
     // Not my turn — ensure LiveKit mic is muted
     if (localAudioTrack) localAudioTrack.enabled = false;
     livekitMute();
-  }, [isCurrentUserTurn, aiIsSpeaking, meetingReady, localAudioTrack, livekitMute]);
+    setRoomMicRefresh((v) => v + 1);
+  }, [isCurrentUserTurn, aiIsSpeaking, meetingReady, localAudioTrack, livekitMute, speechRecording]);
 
   // Auto-start when it's this user's turn (after AI finishes speaking)
   useEffect(() => {

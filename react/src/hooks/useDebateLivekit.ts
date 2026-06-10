@@ -23,6 +23,7 @@ interface UseDebateLivekitOptions {
 interface UseDebateLivekitReturn {
   connected: boolean;
   error: string | null;
+  isMuted: boolean;
   muteLocalAudio: () => void;
   unmuteLocalAudio: () => void;
   disconnect: () => void;
@@ -41,14 +42,17 @@ export function useDebateLivekit({
   const audioElementsRef = useRef<HTMLAudioElement[]>([]);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isMuted, setIsMuted] = useState(startMuted);
 
   const muteLocalAudio = useCallback(() => {
     roomRef.current?.localParticipant?.setMicrophoneEnabled(false);
+    setIsMuted(true);
     console.log("[LIVEKIT] local audio muted");
   }, []);
 
   const unmuteLocalAudio = useCallback(() => {
     roomRef.current?.localParticipant?.setMicrophoneEnabled(true);
+    setIsMuted(false);
     console.log("[LIVEKIT] local audio unmuted");
   }, []);
 
@@ -177,5 +181,5 @@ export function useDebateLivekit({
     };
   }, [enabled, sessionId, candidateId, localStream]);
 
-  return { connected, error, muteLocalAudio, unmuteLocalAudio, disconnect };
+  return { connected, error, isMuted, muteLocalAudio, unmuteLocalAudio, disconnect };
 }
