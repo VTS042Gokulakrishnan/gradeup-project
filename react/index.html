@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>GradeUp! - Advanced Educational Platform</title>
+    <meta name="description" content="GradeUp! is a comprehensive digital learning platform for students in grades 9-12, offering interactive lessons, AI-powered tutoring, and personalized learning paths aligned with curriculum standards." />
+    
+    <!-- Open Graph tags for social sharing -->
+    <meta property="og:title" content="GradeUp! - Advanced Educational Platform" />
+    <meta property="og:description" content="Transform your learning experience with AI-powered tutoring, interactive lessons, and comprehensive progress tracking for grades 9-12." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://gradeup.education" />
+    <meta property="og:image" content="/api/og-image" />
+    <meta property="og:site_name" content="GradeUp!" />
+    
+    <!-- Twitter Card tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="GradeUp! - Advanced Educational Platform" />
+    <meta name="twitter:description" content="Transform your learning experience with AI-powered tutoring and personalized learning paths." />
+    <meta name="twitter:image" content="/api/og-image" />
+    
+    <!-- Additional SEO meta tags -->
+    <meta name="keywords" content="education, learning platform, AI tutoring, grades 9-12, online learning, educational technology, student progress tracking, interactive lessons" />
+    <meta name="author" content="GradeUp! Education Team" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
+    
+    <!-- PWA related tags -->
+    <meta name="theme-color" content="#2563EB" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="GradeUp!" />
+    
+    <!-- Preconnect to external domains for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Google Fonts - Inter for modern, clean typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+    <!-- Favicon and app icons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    
+    <!-- Structured data for educational content -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "EducationalOrganization",
+      "name": "GradeUp!",
+      "description": "Advanced digital learning platform for grades 9-12 with AI-powered tutoring and personalized learning paths",
+      "url": "https://gradeup.education",
+      "logo": "https://gradeup.education/logo.png",
+      "sameAs": [
+        "https://twitter.com/gradeup_edu",
+        "https://facebook.com/gradeup.education",
+        "https://linkedin.com/company/gradeup-education"
+      ],
+      "educationalLevel": "SecondaryEducation",
+      "teaches": [
+        "Mathematics",
+        "Science",
+        "Physics",
+        "Chemistry",
+        "Biology",
+        "History",
+        "English Literature"
+      ]
+    }
+    </script>
+    <script>
+  (function () {
+    try {
+      const key = "vite-ui-theme";
+      const stored = localStorage.getItem(key);
+
+      const theme = stored
+        ? stored
+        : window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
+
+      document.documentElement.setAttribute("data-theme", theme);
+      document.documentElement.classList.add(theme);
+    } catch {}
+  })();
+</script>
+    <!-- Performance and monitoring -->
+    <link rel="dns-prefetch" href="//api.openai.com" />
+    <link rel="dns-prefetch" href="//cdnjs.cloudflare.com" />
+    
+    <!-- Critical CSS inlined for performance -->
+    <style>
+      /* Critical above-the-fold styles */
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #fafaf9;
+        color: #1c1917;
+        line-height: 1.6;
+      }
+      
+      /* Funny loading screen */
+      .loading-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #3498db;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        color: white;
+        text-align: center;
+      }
+      
+      .loading-container h1 {
+        font-size: 2rem;
+        margin-bottom: 20px;
+      }
+
+      .loading-dots {
+        display: flex;
+      }
+
+      .loading-dot {
+        width: 20px;
+        height: 20px;
+        margin: 0 10px;
+        background-color: white;
+        border-radius: 50%;
+        animation: bounce 1.4s infinite ease-in-out both;
+      }
+
+      .loading-dot:nth-child(1) {
+        animation-delay: -0.32s;
+      }
+
+      .loading-dot:nth-child(2) {
+        animation-delay: -0.16s;
+      }
+
+      @keyframes bounce {
+        0%, 80%, 100% {
+          transform: scale(0);
+        }
+        40% {
+          transform: scale(1);
+        }
+      }
+      
+      /* Hide loading spinner when app loads */
+      .app-loaded .loading-container {
+        display: none;
+      }
+      
+      /* Prevent flash of unstyled content */
+      #root:empty::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #fafaf9;
+        z-index: 1000;
+      }
+    </style>
+  </head>
+  <body class="animated-background">
+    <!-- Loading spinner shown while app initializes -->
+    <div class="loading-container">
+      <h1>GradeUp! is preparing your awesome learning adventure...</h1>
+      <div class="loading-dots">
+        <div class="loading-dot"></div>
+        <div class="loading-dot"></div>
+        <div class="loading-dot"></div>
+      </div>
+    </div>
+    
+    <!-- Main app container -->
+    <div id="root"></div>
+    
+    <!-- Accessibility skip link -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-4 py-2 rounded-md z-50">
+      Skip to main content
+    </a>
+    
+    <!-- React app entry point -->
+    <script type="module" src="/src/index.tsx"></script>
+    
+    <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
+    <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
+    
+    <!-- Service Worker registration for PWA functionality -->
+    <script>
+      // Register service worker for offline functionality
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js')
+            .then(function(registration) {
+              // console.log('SW registered: ', registration);
+            })
+            .catch(function(registrationError) {
+              // console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+      
+      // Mark app as loaded when React takes over
+      window.addEventListener('DOMContentLoaded', function() {
+        setTimeout(() => {
+          document.body.classList.add('app-loaded');
+        }, 100);
+      });
+    </script>
+    
+    <!-- Analytics and monitoring scripts would go here in production -->
+    <!-- Google Analytics, Hotjar, etc. -->
+    
+    <!-- Error boundary for unhandled JavaScript errors -->
+    <script>
+      window.addEventListener('error', function(e) {
+        console.error('Global error caught:', e.error);
+        // In production, send to error tracking service
+      });
+      
+      window.addEventListener('unhandledrejection', function(e) {
+        console.error('Unhandled promise rejection:', e.reason);
+        // In production, send to error tracking service
+      });
+    </script>
+  </body>
+</html>

@@ -3491,7 +3491,7 @@ function TeamDebateRoom({
     enabled: meetingReady,
     localStream:
       roomAudioStream instanceof MediaStream ? roomAudioStream : null,
-    apiBase: `${process.env.REACT_APP_API_BASE_URL}`,
+    apiBase: `${import.meta.env.VITE_API_BASE_URL || process.env.REACT_APP_API_BASE_URL || ""}`,
     startMuted: true, // ← add this line
   });
   const isCurrentUserSpeaker = activeSpeakerId === String(candidateId);

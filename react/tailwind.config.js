@@ -1,7 +1,10 @@
 /** @type {import('tailwindcss').Config} */
-const tailwindConfig = {
+import tailwindAnimate from "tailwindcss-animate";
+import typographyPlugin from "@tailwindcss/typography";
+
+export default {
   darkMode: ["class"],
-  content: ["./public/index.html", "./src/**/*.{js,jsx,ts,tsx,tsx}"],
+  content: ["./public/index.html", "./src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
       borderRadius: {
@@ -77,10 +80,5 @@ const tailwindConfig = {
       },
     },
   },
-  plugins: [
-    require("tailwindcss-animate"),
-    require("@tailwindcss/typography"),
-  ],
+  plugins: [tailwindAnimate, typographyPlugin],
 };
-
-module.exports = tailwindConfig;
