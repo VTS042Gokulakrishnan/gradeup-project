@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import jsPDF from "jspdf";
+import { useSeminarLivekit } from "../hooks/useSeminarLivekit";
 
 import Navigation from "../components/navigation";
 import FormattedAIContent from "../components/ai/FormattedAIContent";
@@ -1960,6 +1961,7 @@ function SeminarSetupIntegrated({ onBack, onLaunch }) {
   const [onlineSessions, setOnlineSessions] = useState([]);
   const [inviteInput, setInviteInput] = useState("");
   const [invitees, setInvitees] = useState([]);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const nameInitializedRef = useRef(false);
   const roomId = useRef(genId());
   const roomLink = genRoomLink(roomId.current);
@@ -2217,14 +2219,23 @@ function SeminarSetupIntegrated({ onBack, onLaunch }) {
       }
 
       if (seminarMode === "session" && sessionSubMode === "presenter") {
-        const room = await createSeminarRoom({
+        const selectedUnit = availableUnits.find((item) => item.id === selectedUnitId);
+        const session = await startSeminar({
           sessionId: roomId.current,
-          roomLink,
           unitId: selectedUnitId,
           candidateId: candidate.candidateId,
           candidateName: candidate.candidateName,
           topic: finalTopic,
+          subject: selectedUnit?.subject || selectedSubjectLabel,
+          unitNumber: selectedUnit?.unitNumber ?? undefined,
+          board: selectedUnit?.board || undefined,
+          classNumber: selectedUnit?.standard || undefined,
+          unitName: selectedUnit?.unitTitle || selectedUnit?.unitLabel || unit,
+          mode: "main",
+          session_mode: "main",
+          file: uploadedFile || null,
         });
+        const sessionId = session?.session_id || session?.sessionId || roomId.current;
         onLaunch({
           name,
           candidateId: candidate.candidateId,
@@ -2240,10 +2251,10 @@ function SeminarSetupIntegrated({ onBack, onLaunch }) {
           date: scheduledInfo?.date,
           time: scheduledInfo?.time,
           unitId: selectedUnitId,
-          roomId: room?.session_id || room?.sessionId || roomId.current,
-          sessionId: room?.session_id || room?.sessionId || roomId.current,
-          liveSession: room?.liveSession || null,
-          initialFacilitatorMessage: "",
+          roomId: sessionId,
+          sessionId,
+          liveSession: session?.liveSession || null,
+          initialFacilitatorMessage: session?.ai_greeting || session?.message || session?.opening_statement || "",
           seminarMode: "session",
           sessionSubMode: "presenter",
         });
@@ -2487,6 +2498,18 @@ function SeminarSetupIntegrated({ onBack, onLaunch }) {
                     <div className="link-box">
                       <div className="link-lbl">🔗 Your Room Link — Share with Observers</div>
                       <div className="link-row"><span className="link-val">{roomLink}</span><button className="copy-btn" onClick={copyLink}>{copied ? "✓ Copied" : "Copy"}</button></div>
+                    </div>
+                    <div className="sec-div">Upload Presentation (Optional)</div>
+                    <div className="fi">
+                      <label className="fl">PDF or PowerPoint for AI context & screen share</label>
+                      <div style={{display:"flex",alignItems:"center",gap:10,marginTop:6}}>
+                        <label style={{flex:1,padding:"9px 14px",borderRadius:10,border:"1.5px dashed rgba(0,195,122,.35)",background:"rgba(0,195,122,.04)",cursor:"pointer",fontSize:12,color:"var(--t2)",display:"flex",alignItems:"center",gap:8}}>
+                          <span style={{fontSize:16}}>📎</span>
+                          <span>{uploadedFile ? uploadedFile.name : "Choose PDF, PPT, or PPTX…"}</span>
+                          <input type="file" accept=".pdf,.ppt,.pptx,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" style={{display:"none"}} onChange={(e)=>{const f=e.target.files?.[0]||null;setUploadedFile(f);if(f)toast$(`📎 ${f.name} ready to share`,"success");}}/>
+                        </label>
+                        {uploadedFile && <button className="btn-s" style={{padding:"8px 10px",fontSize:11}} onClick={()=>setUploadedFile(null)}>✕ Remove</button>}
+                      </div>
                     </div>
                   </>
                 )}
@@ -4449,9 +4472,27 @@ function PresenterRoom({config,onEnd}) {
   const [ending,setEnding]=useState(false);
   const [sendingChat,setSendingChat]=useState(false);
   const [isHostSpeaking,setIsHostSpeaking]=useState(false);
+  const [sharedFile,setSharedFile]=useState<{url:string,name:string,isPdf:boolean}|null>(null);
+  const sharedFileInputRef=useRef<HTMLInputElement>(null);
   const aiVoice=useAIVoice();
   const {show:toast$,node:toastNode}=useToast();
   const presenterColor=avColor(config.name);
+  const livekitApiBase = `${import.meta.env.VITE_API_BASE_URL || ""}`;
+  const {
+    isMuted: livekitMuted,
+    muteLocalAudio: livekitMute,
+    unmuteLocalAudio: livekitUnmute,
+    connected: livekitConnected,
+  } = useSeminarLivekit({
+    sessionId: config.sessionId || "",
+    candidateId: String(config.candidateId || ""),
+    candidateName: config.name || "",
+    enabled: Boolean(config.sessionId && config.candidateId),
+    role: "host",
+    localStream: config.stream || null,
+    apiBase: livekitApiBase,
+    startMuted: !config.micOn,
+  });
   const chatEndRef=useRef(null);
   const pollingRef=useRef(null);
   const completionHandledRef=useRef(false);
@@ -4697,17 +4738,23 @@ function PresenterRoom({config,onEnd}) {
             </div>
             <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:8}}>
               {observerList.length === 0 ? (
-                <div style={{padding:"14px",borderRadius:14,background:"var(--surf2)",border:"1px solid var(--bdr)",fontSize:12,color:"var(--t2)"}}>No users have joined yet.</div>
-              ) : observerList.map((participant)=>(
-                <div key={participant.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,background:"var(--surf2)",border:"1px solid var(--bdr)"}}>
+                <div style={{padding:"14px",borderRadius:14,background:"var(--surf2)",border:"1px solid var(--bdr)",fontSize:12,color:"var(--t2)"}}>No users have joined yet. Share the room link above.</div>
+              ) : observerList.map((participant)=>{
+                const isApproved = participant.status === "approved_to_speak" || participant.status === "approved";
+                return (
+                <div key={participant.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,background:"var(--surf2)",border:`1px solid ${isApproved?"rgba(0,195,122,.25)":"var(--bdr)"}`}}>
                   <div className="invite-av" style={{background:avColor(participant.name)}}>{avInit(participant.name)}</div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:12.5,fontWeight:700,color:"var(--t1)"}}>{participant.name}</div>
-                    <div style={{fontSize:10.5,color:"var(--t2)"}}>Waiting to join seminar</div>
+                    <div style={{fontSize:10.5,color:isApproved?"#5ee3b7":"var(--t2)"}}>{isApproved?"✅ Approved to enter":"⏳ Waiting to join"}</div>
                   </div>
-                  <button className="btn-d" style={{padding:"7px 10px"}} onClick={()=>handleRemoveParticipant(participant)}>Remove</button>
+                  <div style={{display:"flex",gap:6}}>
+                    {!isApproved && <button className="btn-s" style={{padding:"6px 10px",fontSize:11,background:"rgba(0,195,122,.1)",borderColor:"rgba(0,195,122,.3)",color:"#5ee3b7"}} onClick={()=>handleSpeakApproval({participantId:participant.id,participantName:participant.name},true)}>✓ Allow</button>}
+                    <button className="btn-d" style={{padding:"6px 10px",fontSize:11}} onClick={()=>handleRemoveParticipant(participant)}>Remove</button>
+                  </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
             <button className="btn-p" style={{marginTop:14}} onClick={handleStartRoom} disabled={starting || !config.unitId}>{starting ? "Starting Seminar..." : "Start Seminar"}</button>
           </div>
@@ -4716,8 +4763,33 @@ function PresenterRoom({config,onEnd}) {
         <div className="room-body">
           <div className="grid-area">
             <div className="ss-area">
-              {!screenSharing?(<div className="ss-placeholder"><div style={{fontSize:52,opacity:.18}}>🖥️</div><div style={{fontSize:13,fontWeight:700}}>Screen not shared yet</div><button style={{marginTop:14,padding:"9px 20px",borderRadius:10,background:"var(--grad)",border:"none",cursor:"pointer",fontSize:13,fontWeight:700,color:"#fff"}} onClick={toggleScreen}>🖥️ Start Screen Share</button></div>)
-                :(<><div className="ss-active-label"><div className="ss-active-dot"/>Screen Sharing Active · {observerCount} watching</div><div style={{fontSize:11,color:"rgba(255,255,255,.3)"}}>Your screen is shared</div></>)}
+              {sharedFile ? (
+                <div style={{width:"100%",height:"100%",position:"relative",display:"flex",flexDirection:"column"}}>
+                  <div className="ss-active-label"><div className="ss-active-dot"/>📎 {sharedFile.name} · {observerCount} watching<button style={{marginLeft:"auto",background:"rgba(229,62,62,.8)",border:"none",borderRadius:6,color:"#fff",fontSize:11,padding:"2px 8px",cursor:"pointer"}} onClick={()=>{URL.revokeObjectURL(sharedFile.url);setSharedFile(null);}}>✕ Stop</button></div>
+                  {sharedFile.isPdf ? (
+                    <iframe src={sharedFile.url} style={{flex:1,width:"100%",border:"none",borderRadius:"0 0 8px 8px"}} title={sharedFile.name}/>
+                  ) : (
+                    <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:12,color:"rgba(255,255,255,.5)"}}>
+                      <div style={{fontSize:52}}>📊</div>
+                      <div style={{fontSize:13,fontWeight:700,color:"rgba(255,255,255,.7)"}}>{sharedFile.name}</div>
+                      <div style={{fontSize:11,color:"rgba(255,255,255,.35)",textAlign:"center",maxWidth:260}}>PowerPoint files display in the AI context. Use screen share to show slides to participants.</div>
+                      <a href={sharedFile.url} download={sharedFile.name} style={{padding:"8px 18px",borderRadius:8,background:"rgba(45,156,219,.2)",border:"1px solid rgba(45,156,219,.35)",color:"#7ed3f7",fontSize:12,fontWeight:700,textDecoration:"none"}}>⬇ Download</a>
+                    </div>
+                  )}
+                </div>
+              ) : !screenSharing ? (
+                <div className="ss-placeholder">
+                  <div style={{fontSize:52,opacity:.18}}>🖥️</div>
+                  <div style={{fontSize:13,fontWeight:700}}>Screen not shared yet</div>
+                  <div style={{display:"flex",gap:10,marginTop:14}}>
+                    <button style={{padding:"9px 20px",borderRadius:10,background:"var(--grad)",border:"none",cursor:"pointer",fontSize:13,fontWeight:700,color:"#fff"}} onClick={toggleScreen}>🖥️ Share Screen</button>
+                    <button style={{padding:"9px 16px",borderRadius:10,background:"rgba(45,156,219,.15)",border:"1px solid rgba(45,156,219,.3)",cursor:"pointer",fontSize:13,fontWeight:700,color:"#7ed3f7"}} onClick={()=>sharedFileInputRef.current?.click()}>📎 Share File</button>
+                  </div>
+                  <input ref={sharedFileInputRef} type="file" accept=".pdf,.ppt,.pptx,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" style={{display:"none"}} onChange={(e)=>{const f=e.target.files?.[0];if(f){const url=URL.createObjectURL(f);setSharedFile({url,name:f.name,isPdf:f.type==="application/pdf"||f.name.toLowerCase().endsWith(".pdf")});toast$(`📎 Sharing ${f.name}`,"success");}}}/>
+                </div>
+              ) : (
+                <><div className="ss-active-label"><div className="ss-active-dot"/>Screen Sharing Active · {observerCount} watching</div><div style={{fontSize:11,color:"rgba(255,255,255,.3)"}}>Your screen is shared</div></>
+              )}
               {reaction&&<div key={reaction.k} style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",fontSize:46,animation:"rPop 2s forwards",pointerEvents:"none",zIndex:5}}>{reaction.emoji}</div>}
             </div>
             <div className="presenter-strip">
@@ -4736,8 +4808,9 @@ function PresenterRoom({config,onEnd}) {
             </div>
             <div className="ctrl-bar">
               <div className="cg">
-                <button className={`cbtn ${micOn?"on":"off"}`} onMouseDown={()=>setIsHostSpeaking(true)} onMouseUp={()=>setIsHostSpeaking(false)} onMouseLeave={()=>setIsHostSpeaking(false)} onClick={()=>setMicOn((value)=>!value)}><span className="cbtn-ic">{micOn?"🎤":"🔇"}</span><span>{micOn?"Mute":"Unmute"}</span></button>
+                <button className={`cbtn ${micOn?"on":"off"}`} onMouseDown={()=>setIsHostSpeaking(true)} onMouseUp={()=>setIsHostSpeaking(false)} onMouseLeave={()=>setIsHostSpeaking(false)} onClick={()=>{const next=!micOn;setMicOn(next);if(next){livekitUnmute();}else{livekitMute();}}}><span className="cbtn-ic">{micOn?"🎤":"🔇"}</span><span>{micOn?"Mute":"Unmute"}</span></button>
                 <button className={`cbtn${screenSharing?" hi":""}`} onClick={toggleScreen}><span className="cbtn-ic">🖥</span><span>{screenSharing?"Stop":"Share"}</span></button>
+                <button className={`cbtn${sharedFile?" hi":""}`} onClick={()=>sharedFileInputRef.current?.click()}><span className="cbtn-ic">📎</span><span>{sharedFile?"File On":"Share File"}</span></button>
                 <div style={{position:"relative"}}><button className={`cbtn${showReactions?" hi":""}`} onClick={()=>setShowReactions((value)=>!value)}><span className="cbtn-ic">😊</span><span>React</span></button>{showReactions&&<div className="react-pop">{REACTIONS.map((item)=><button key={item} className="react-em" onClick={()=>sendReaction(item)}>{item}</button>)}</div>}</div>
               </div>
               <div className="cg">
@@ -4964,6 +5037,21 @@ function ObserverRoom({config,onEnd}) {
   const chatEndRef=useRef(null);
   const pollingRef=useRef(null);
   const completionHandledRef=useRef(false);
+  const observerLivekitApiBase = `${import.meta.env.VITE_API_BASE_URL || ""}`;
+  const {
+    isMuted: obsLivekitMuted,
+    muteLocalAudio: obsLivekitMute,
+    unmuteLocalAudio: obsLivekitUnmute,
+  } = useSeminarLivekit({
+    sessionId: config.sessionId || "",
+    candidateId: String(config.candidateId || ""),
+    candidateName: config.name || "",
+    enabled: Boolean(config.sessionId && config.candidateId),
+    role: "observer",
+    localStream: null,
+    apiBase: observerLivekitApiBase,
+    startMuted: true,
+  });
   const latestConfigRef=useRef(config);
   const latestTimerRef=useRef(timer);
   const latestOnEndRef=useRef(onEnd);
@@ -4989,24 +5077,16 @@ function ObserverRoom({config,onEnd}) {
       setRoomError("");
       if((session?.status === "completed" || session?.status === "ending") && !completionHandledRef.current){
         completionHandledRef.current = true;
-        latestOnEndRef.current({
-          sessionId: latestConfig.sessionId,
-          timer: latestTimerRef.current,
-          topic: session?.topic || latestConfig.topic,
-          subject: session?.subject || latestConfig.subject,
-          unit: session?.unit || latestConfig.unit,
-          participants: 0,
-          exchanges: mapSeminarTurnsToMessages(session, latestConfig.name).length,
-          presenterName,
-          modeType: "observer",
-        });
+        if(pollingRef.current) clearInterval(pollingRef.current);
+        toast$("The seminar session has ended.","info");
+        setTimeout(()=>navigateAfterSeminarExit(latestConfig.isGuest || false), 1500);
       }
     } catch(error){
       setRoomError(error?.message || "Unable to refresh the seminar room.");
     } finally {
       if(showFullLoader) setRoomLoading(false);
     }
-  },[presenterName]);
+  },[presenterName, toast$]);
 
   useEffect(()=>{
     syncSession(true);
