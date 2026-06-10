@@ -1,5 +1,5 @@
 const { callPython } = require("../services/pythonGateway");
-const formidable = require("formidable");
+const { formidable } = require("formidable");
 const FormData = require("form-data");
 const fs = require("fs");
 const {
