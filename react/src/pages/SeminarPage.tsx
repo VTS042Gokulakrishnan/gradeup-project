@@ -1048,7 +1048,7 @@ function downloadSessionPDFLegacy({ config, timer, transcriptHistory, notes, mes
   doc.save(`seminar-report-${Date.now()}.pdf`);
 }
 
-function downloadSessionPDF({ config, timer, transcriptHistory, notes, messages }) {
+function downloadSessionPDF({ config, timer, transcriptHistory, notes, messages, apiScores = null, hintsUsed = 0, topicsCovered = [] }) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const PW = 210;
   const PH = 297;
@@ -1184,13 +1184,20 @@ function downloadSessionPDF({ config, timer, transcriptHistory, notes, messages 
   const transcriptVolume = Math.min(10, transcript.join(" ").length / 220);
   const aiExchanges = chatMessages.filter((m) => (m.from || m.type) === "ai" || m.sender === "AI Moderator").length;
   const learnerExchanges = chatMessages.filter((m) => (m.from || "").includes("me") || (m.sender && m.sender !== "AI Moderator")).length;
-  const scores = {
+  // Use real API scores if available, otherwise fall back to calculated
+  const hasApiScores = apiScores && typeof apiScores === "object" && apiScores.total_score != null;
+  const scores = hasApiScores ? {
+    delivery: Math.round(((apiScores.presentation_flow ?? 0) / 20) * 100),
+    clarity: Math.round(((apiScores.conceptual_understanding ?? 0) / 30) * 100),
+    depth: Math.round(((apiScores.depth_of_knowledge ?? 0) / 25) * 100),
+    engagement: Math.round(((apiScores.engagement ?? 0) / 15) * 100),
+  } : {
     delivery: Math.min(98, hashScore(topic + presenter + "delivery", 68, 92) + Math.round(transcriptVolume / 2)),
     clarity: Math.min(98, hashScore(topic + "clarity", 66, 94) + (safeNotes.length > 2 ? 2 : 0)),
     depth: Math.min(96, hashScore(topic + subject + "depth", 62, 90) + Math.min(6, safeNotes.length)),
     engagement: Math.min(97, hashScore(topic + "engagement", 64, 91) + Math.min(5, aiExchanges + learnerExchanges)),
   };
-  const overall = Math.round((scores.delivery + scores.clarity + scores.depth + scores.engagement) / 4);
+  const overall = hasApiScores ? (apiScores.total_score ?? 0) : Math.round((scores.delivery + scores.clarity + scores.depth + scores.engagement) / 4);
   const scoreColor = overall >= 82 ? C.green : overall >= 68 ? C.amber : C.red;
   const verdict = overall >= 88 ? "Outstanding" : overall >= 78 ? "Strong" : overall >= 65 ? "Promising" : "Needs focused practice";
 
@@ -1275,7 +1282,20 @@ function downloadSessionPDF({ config, timer, transcriptHistory, notes, messages 
 
   section("AI Coach Feedback", "strengths and improvements", C.sky);
   const weakest = Object.entries(scores).sort((a, b) => a[1] - b[1])[0][0];
-  [["Strength", "Your session shows a clear base to build from. The topic framing and saved Q&A notes give you useful material for a stronger final presentation.", C.green, [0, 42, 28]], ["Strength", "The strongest scoring area should become your anchor. Open with that confidence, then use transitions to carry the audience across the remaining points.", C.green, [0, 42, 28]], ["Improve", `The main development area is ${weakest}. Use shorter claims, one concrete example per claim, and a deliberate pause before moving to the next idea.`, C.amber, [48, 33, 6]], ["Improve", "Close with a compact final message: restate the thesis, name the takeaway, then give the audience one question or action to remember.", C.amber, [48, 33, 6]], ["Coach Tip", "For the next practice run, record three minutes only. Review filler words, pacing, and whether the central argument is understandable without extra explanation.", C.sky, [8, 31, 52]]].forEach(([label, body, col, box]) => {
+  const feedbackItems = hasApiScores ? [
+    ...( apiScores.overall_feedback ? [["Overview", apiScores.overall_feedback, C.sky, [8, 31, 52]]] : [] ),
+    ...( (apiScores.strengths||[]).map(s => ["Strength", s, C.green, [0, 42, 28]]) ),
+    ...( (apiScores.improvements||[]).map(s => ["Improve", s, C.amber, [48, 33, 6]]) ),
+    ...( (apiScores.topics_mastered||[]).map(t => ["Mastered", t, C.sky, [8, 31, 52]]) ),
+    ...( (apiScores.topics_need_work||[]).map(t => ["Needs Work", t, C.red, [52, 14, 14]]) ),
+  ] : [
+    ["Strength", "Your session shows a clear base to build from. The topic framing and saved Q&A notes give you useful material for a stronger final presentation.", C.green, [0, 42, 28]],
+    ["Strength", "The strongest scoring area should become your anchor. Open with that confidence, then use transitions to carry the audience across the remaining points.", C.green, [0, 42, 28]],
+    ["Improve", `The main development area is ${weakest}. Use shorter claims, one concrete example per claim, and a deliberate pause before moving to the next idea.`, C.amber, [48, 33, 6]],
+    ["Improve", "Close with a compact final message: restate the thesis, name the takeaway, then give the audience one question or action to remember.", C.amber, [48, 33, 6]],
+    ["Coach Tip", "For the next practice run, record three minutes only. Review filler words, pacing, and whether the central argument is understandable without extra explanation.", C.sky, [8, 31, 52]],
+  ];
+  feedbackItems.forEach(([label, body, col, box]) => {
     const lines = doc.splitTextToSize(body, CW - 35);
     const h = Math.max(16, lines.length * 4.6 + 8);
     ensure(h + 3);
@@ -1488,9 +1508,15 @@ function ScheduleSeminarModal({config,onSchedule,onClose}) {
   );
 }
 
-function AnalysisModal({topic,subject,unit,timer,exchanges,presenterName,onClose,onDownload}) {
-  const scores={delivery:68+Math.floor(Math.random()*28),clarity:62+Math.floor(Math.random()*30),depth:55+Math.floor(Math.random()*38),engagement:70+Math.floor(Math.random()*25)};
-  const overall=Math.round(Object.values(scores).reduce((a,b)=>a+b,0)/4);
+function AnalysisModal({topic,subject,unit,timer,exchanges,presenterName,apiScores,hintsUsed,onClose,onDownload}) {
+  const hasApi = apiScores && apiScores.total_score != null;
+  const scores = hasApi ? {
+    delivery: Math.round(((apiScores.presentation_flow??0)/20)*100),
+    clarity:  Math.round(((apiScores.conceptual_understanding??0)/30)*100),
+    depth:    Math.round(((apiScores.depth_of_knowledge??0)/25)*100),
+    engagement: Math.round(((apiScores.engagement??0)/15)*100),
+  } : {delivery:68+Math.floor(Math.random()*28),clarity:62+Math.floor(Math.random()*30),depth:55+Math.floor(Math.random()*38),engagement:70+Math.floor(Math.random()*25)};
+  const overall = hasApi ? (apiScores.total_score??0) : Math.round(Object.values(scores).reduce((a,b)=>a+b,0)/4);
   return (
     <div className="analysis-bg" onClick={onClose}>
       <div className="analysis-box" onClick={e=>e.stopPropagation()}>
@@ -1524,10 +1550,42 @@ function AnalysisModal({topic,subject,unit,timer,exchanges,presenterName,onClose
               ))}
             </div>
           </div>
-          <div className="a-sec" style={{animationDelay:".16s"}}>
+ <div className="a-sec" style={{animationDelay:".16s"}}>
             <div className="a-sec-title">AI Feedback</div>
             <div style={{display:"flex",flexDirection:"column",gap:6}}>
-              {[{ic:"✅",c:"rgba(0,195,122,.08)",bc:"rgba(0,195,122,.2)",t:"#5ee3b7",msg:"Strong opening with clear thesis statement established."},{ic:"✅",c:"rgba(0,195,122,.08)",bc:"rgba(0,195,122,.2)",t:"#5ee3b7",msg:"Good use of evidence to support main arguments."},{ic:"⚠️",c:"rgba(246,166,35,.06)",bc:"rgba(246,166,35,.18)",t:"#fcd18e",msg:"Consider slowing down during key points for emphasis."},{ic:"💡",c:"rgba(45,156,219,.06)",bc:"rgba(45,156,219,.18)",t:"#7ed3f7",msg:"End with a strong question or call-to-action to engage observers."}].map((f,i)=>(
+              {hasApi?(
+                <>
+                  {apiScores.overall_feedback&&(
+                    <div style={{padding:"8px 11px",borderRadius:9,background:"rgba(45,156,219,.06)",border:"1px solid rgba(45,156,219,.2)",fontSize:11.5,fontWeight:600,color:"#7ed3f7",lineHeight:1.6,marginBottom:2}}>
+                      {apiScores.overall_feedback}
+                    </div>
+                  )}
+                  {(apiScores.strengths||[]).map((s,i)=>(
+                    <div key={`str-${i}`} style={{display:"flex",gap:9,padding:"8px 11px",borderRadius:9,background:"rgba(0,195,122,.08)",border:"1px solid rgba(0,195,122,.2)"}}>
+                      <span style={{fontSize:15,flexShrink:0}}>✅</span>
+                      <span style={{fontSize:11.5,fontWeight:600,color:"#5ee3b7",lineHeight:1.5}}>{s}</span>
+                    </div>
+                  ))}
+                  {(apiScores.improvements||[]).map((s,i)=>(
+                    <div key={`imp-${i}`} style={{display:"flex",gap:9,padding:"8px 11px",borderRadius:9,background:"rgba(246,166,35,.06)",border:"1px solid rgba(246,166,35,.18)"}}>
+                      <span style={{fontSize:15,flexShrink:0}}>🎯</span>
+                      <span style={{fontSize:11.5,fontWeight:600,color:"#fcd18e",lineHeight:1.5}}>{s}</span>
+                    </div>
+                  ))}
+                  {(apiScores.topics_need_work||[]).map((t,i)=>(
+                    <div key={`tnw-${i}`} style={{display:"flex",gap:9,padding:"8px 11px",borderRadius:9,background:"rgba(229,62,62,.06)",border:"1px solid rgba(229,62,62,.18)"}}>
+                      <span style={{fontSize:15,flexShrink:0}}>📚</span>
+                      <span style={{fontSize:11.5,fontWeight:600,color:"#fca5a5",lineHeight:1.5}}>{t}</span>
+                    </div>
+                  ))}
+                  {hintsUsed>0&&(
+                    <div style={{display:"flex",gap:9,padding:"8px 11px",borderRadius:9,background:"rgba(229,62,62,.06)",border:"1px solid rgba(229,62,62,.18)"}}>
+                      <span style={{fontSize:15,flexShrink:0}}>💡</span>
+                      <span style={{fontSize:11.5,fontWeight:600,color:"#fca5a5",lineHeight:1.5}}>{hintsUsed} hint{hintsUsed>1?"s":""} used during the session.</span>
+                    </div>
+                  )}
+                </>
+              ):[{ic:"✅",c:"rgba(0,195,122,.08)",bc:"rgba(0,195,122,.2)",t:"#5ee3b7",msg:"Strong opening with clear thesis statement established."},{ic:"✅",c:"rgba(0,195,122,.08)",bc:"rgba(0,195,122,.2)",t:"#5ee3b7",msg:"Good use of evidence to support main arguments."},{ic:"⚠️",c:"rgba(246,166,35,.06)",bc:"rgba(246,166,35,.18)",t:"#fcd18e",msg:"Consider slowing down during key points for emphasis."},{ic:"💡",c:"rgba(45,156,219,.06)",bc:"rgba(45,156,219,.18)",t:"#7ed3f7",msg:"End with a strong question or call-to-action to engage observers."}].map((f,i)=>(
                 <div key={i} style={{display:"flex",gap:9,padding:"8px 11px",borderRadius:9,background:f.c,border:`1px solid ${f.bc}`}}>
                   <span style={{fontSize:15,flexShrink:0}}>{f.ic}</span>
                   <span style={{fontSize:11.5,fontWeight:600,color:f.t,lineHeight:1.5}}>{f.msg}</span>
@@ -2949,8 +3007,9 @@ if(unlockMicOnDone || shouldRestoreMic){
           beginSpeechCapture();
         }
       }
-    },{
+       },{
       onStart: ()=>{
+        lastSpeechTimeRef.current = Date.now();
         if(isGreeting){
           console.log("greeting speak started");
           setGreetingState("speaking");
@@ -3012,7 +3071,7 @@ useEffect(()=>{
     }
     stuckCheckRef.current=setInterval(()=>{
       const silentFor=(Date.now()-lastSpeechTimeRef.current)/1000;
-    if(silentFor>=15&&!aiPausedForSuggestion&&activeSeminarMode==="demo"){
+    if(silentFor>=20&&!aiPausedForSuggestion&&activeSeminarMode==="demo"&&!aiVoice.isSpeaking){
         triggerAISuggestionRef.current();
       }
     },3000);
@@ -3447,22 +3506,27 @@ speakAiReply(msg,{ resumeCapture: true });
     } catch(error){
       toast$(getErrorMessage(error, "Unable to end the seminar cleanly."),"error");
     }
+    const endScores = endResponse?.scores || endResponse?.data?.scores || endResponse?.data?.feedback?.scores || {};
+    const endSession = endResponse?.liveSession || endResponse?.data?.liveSession || {};
     onEnd({
       modeType:"prepare",
       sessionId,
       timer:timer.display,
-      topic:config.topic,
-      subject:config.subject,
-      unit:config.unit,
+      topic: config.topic || endSession?.topic,
+      subject: config.subject || endSession?.subject,
+      unit: config.unit || endSession?.unit,
       participants:1,
       exchanges,
-      presenterName:config.name,
+      presenterName: config.name || endSession?.hostCandidateName,
       transcriptHistory,
       notes,
       messages,
-      feedback:endResponse?.response_message || endResponse?.scores || endResponse || null,
-      scores:endResponse?.scores || {},
-      canViewFeedback:true,
+      scores: endScores,
+      topicsCovered: endResponse?.topics_covered || endResponse?.data?.topics_covered || [],
+      hintsUsed: endResponse?.hints_used ?? endResponse?.data?.hints_used ?? 0,
+      turns: endSession?.turns || [],
+      feedback: endScores,
+      canViewFeedback: true,
     });
   }
 
@@ -5108,7 +5172,7 @@ function SeminarResults({result,onNew}) {
   const [feedbackChatInput,setFeedbackChatInput]=useState("");
   const [feedbackChatLoading,setFeedbackChatLoading]=useState(false);
   const isObserver=result.modeType==="observer";
-  function handleDownload(){downloadSessionPDF({config:{name:result.presenterName,topic:result.topic,subject:result.subject,unit:result.unit},timer:result.timer,transcriptHistory:result.transcriptHistory||[],notes:result.notes||[],messages:result.messages||[]});}
+  function handleDownload(){downloadSessionPDF({config:{name:result.presenterName,topic:result.topic,subject:result.subject,unit:result.unit},timer:result.timer,transcriptHistory:result.transcriptHistory||[],notes:result.notes||[],messages:result.messages||[],apiScores:result.scores||null,hintsUsed:result.hintsUsed||0,topicsCovered:result.topicsCovered||[]});}
   async function openFeedbackChat(){
     if(!result.sessionId) return;
     setShowFeedbackChat(true);
@@ -5154,15 +5218,113 @@ function SeminarResults({result,onNew}) {
           <div key={s.l} className="res-stat" style={{animationDelay:`${i*.1}s`}}><div className="res-stat-ic">{s.i}</div><div className="res-stat-v">{s.v}</div><div className="res-stat-l">{s.l}</div></div>
         ))}
       </div>
-      {!isObserver && result.canViewFeedback && result.feedback && (
-        <div style={{width:"100%",maxWidth:780,margin:"6px auto 18px",padding:"18px 20px",borderRadius:18,background:"var(--surf)",border:"1px solid var(--bdr)",boxShadow:"var(--sh)"}}>
-          <div style={{fontSize:13,fontWeight:800,color:"var(--t1)",marginBottom:10}}>AI Feedback</div>
-          <FormattedAIContent content={result.feedback} />
+{!isObserver && result.canViewFeedback && result.scores && Object.keys(result.scores).length > 0 && (
+        <div style={{width:"100%",maxWidth:780,margin:"6px auto 18px",display:"flex",flexDirection:"column",gap:14}}>
+
+          {/* Score Cards */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
+            {[
+              {label:"Conceptual Understanding",key:"conceptual_understanding",color:"#00c37a",max:30},
+              {label:"Depth of Knowledge",key:"depth_of_knowledge",color:"#2d9cdb",max:25},
+              {label:"Presentation Flow",key:"presentation_flow",color:"#7c3aed",max:20},
+              {label:"Engagement",key:"engagement",color:"#f6a623",max:15},
+              {label:"Hints Penalty",key:"hints_penalty",color:"#e53e3e",max:10,negative:true},
+            ].map(s=>(
+              <div key={s.key} style={{padding:"14px 16px",borderRadius:14,background:"var(--surf)",border:"1px solid var(--bdr)",textAlign:"center"}}>
+                <div style={{fontSize:22,fontWeight:900,color:s.color}}>{s.negative?"-":""}{result.scores[s.key]??"-"}</div>
+                <div style={{fontSize:10,fontWeight:700,color:"var(--t2)",marginTop:4,lineHeight:1.4}}>{s.label}</div>
+                <div style={{marginTop:8,height:4,borderRadius:4,background:"rgba(255,255,255,.06)"}}>
+                  <div style={{height:"100%",borderRadius:4,background:s.color,width:`${Math.min(100,((result.scores[s.key]??0)/s.max)*100)}%`,transition:"width .6s"}}/>
+                </div>
+              </div>
+            ))}
+            <div style={{padding:"14px 16px",borderRadius:14,background:"linear-gradient(135deg,rgba(0,195,122,.12),rgba(45,156,219,.12))",border:"1px solid rgba(0,195,122,.25)",textAlign:"center",display:"flex",flexDirection:"column",justifyContent:"center"}}>
+              <div style={{fontSize:28,fontWeight:900,color:"var(--em)"}}>{result.scores.total_score??"-"}</div>
+              <div style={{fontSize:10,fontWeight:700,color:"var(--t2)",marginTop:4}}>TOTAL SCORE</div>
+              {result.hintsUsed>0&&<div style={{fontSize:10,color:"#e53e3e",marginTop:4}}>💡 {result.hintsUsed} hint{result.hintsUsed>1?"s":""} used</div>}
+            </div>
+          </div>
+
+          {/* Overall Feedback */}
+          {result.scores.overall_feedback&&(
+            <div style={{padding:"16px 18px",borderRadius:14,background:"var(--surf)",border:"1px solid var(--bdr)"}}>
+              <div style={{fontSize:12,fontWeight:800,color:"var(--t1)",marginBottom:8}}>📋 Overall Feedback</div>
+              <div style={{fontSize:13,color:"var(--t2)",lineHeight:1.7}}>{result.scores.overall_feedback}</div>
+            </div>
+          )}
+
+          {/* Strengths & Improvements */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            {result.scores.strengths?.length>0&&(
+              <div style={{padding:"14px 16px",borderRadius:14,background:"rgba(0,195,122,.06)",border:"1px solid rgba(0,195,122,.18)"}}>
+                <div style={{fontSize:12,fontWeight:800,color:"var(--em)",marginBottom:10}}>✅ Strengths</div>
+                {result.scores.strengths.map((s,i)=>(
+                  <div key={i} style={{fontSize:12,color:"var(--t2)",marginBottom:6,paddingLeft:10,borderLeft:"2px solid rgba(0,195,122,.4)",lineHeight:1.5}}>{s}</div>
+                ))}
+              </div>
+            )}
+            {result.scores.improvements?.length>0&&(
+              <div style={{padding:"14px 16px",borderRadius:14,background:"rgba(229,62,62,.06)",border:"1px solid rgba(229,62,62,.18)"}}>
+                <div style={{fontSize:12,fontWeight:800,color:"var(--red)",marginBottom:10}}>🎯 Areas to Improve</div>
+                {result.scores.improvements.map((s,i)=>(
+                  <div key={i} style={{fontSize:12,color:"var(--t2)",marginBottom:6,paddingLeft:10,borderLeft:"2px solid rgba(229,62,62,.4)",lineHeight:1.5}}>{s}</div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Topics Mastered & Need Work */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            {result.scores.topics_mastered?.length>0&&(
+              <div style={{padding:"14px 16px",borderRadius:14,background:"rgba(45,156,219,.06)",border:"1px solid rgba(45,156,219,.18)"}}>
+                <div style={{fontSize:12,fontWeight:800,color:"var(--sky)",marginBottom:10}}>🏆 Topics Mastered</div>
+                {result.scores.topics_mastered.map((t,i)=>(
+                  <div key={i} style={{fontSize:12,color:"var(--t2)",marginBottom:5,paddingLeft:10,borderLeft:"2px solid rgba(45,156,219,.4)",lineHeight:1.5}}>{t}</div>
+                ))}
+              </div>
+            )}
+            {result.scores.topics_need_work?.length>0&&(
+              <div style={{padding:"14px 16px",borderRadius:14,background:"rgba(246,166,35,.06)",border:"1px solid rgba(246,166,35,.18)"}}>
+                <div style={{fontSize:12,fontWeight:800,color:"#f6a623",marginBottom:10}}>📚 Needs More Work</div>
+                {result.scores.topics_need_work.map((t,i)=>(
+                  <div key={i} style={{fontSize:12,color:"var(--t2)",marginBottom:5,paddingLeft:10,borderLeft:"2px solid rgba(246,166,35,.4)",lineHeight:1.5}}>{t}</div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Topics Covered */}
+          {result.topicsCovered?.length>0&&(
+            <div style={{padding:"14px 16px",borderRadius:14,background:"var(--surf)",border:"1px solid var(--bdr)"}}>
+              <div style={{fontSize:12,fontWeight:800,color:"var(--t1)",marginBottom:10}}>📖 Topics Covered</div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {result.topicsCovered.map((t,i)=>(
+                  <span key={i} style={{padding:"4px 12px",borderRadius:20,background:"rgba(124,58,237,.1)",border:"1px solid rgba(124,58,237,.22)",fontSize:11,fontWeight:700,color:"var(--vio)"}}>{t}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Session Transcript */}
+          {result.turns?.filter(t=>t.role==="user").length>0&&(
+            <div style={{padding:"14px 16px",borderRadius:14,background:"var(--surf)",border:"1px solid var(--bdr)"}}>
+              <div style={{fontSize:12,fontWeight:800,color:"var(--t1)",marginBottom:10}}>🗣️ Session Transcript</div>
+              {result.turns.map((turn,i)=>(
+                <div key={i} style={{marginBottom:10,paddingBottom:10,borderBottom:"1px solid var(--bdr)"}}>
+                  <div style={{fontSize:10,fontWeight:800,color:turn.role==="user"?"var(--em)":"var(--sky)",marginBottom:4}}>
+                    {turn.role==="user"?`👤 ${turn.speakerName}`:"🤖 AI Coach"} · {new Date(turn.createdAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
+                  </div>
+                  <div style={{fontSize:12,color:"var(--t2)",lineHeight:1.6}}>{turn.message}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
         </div>
       )}
       <div className="res-acts">
         {!isObserver&&<button className="btn-s" style={{borderColor:"rgba(0,195,122,.28)",color:"var(--em)"}} onClick={()=>setShowAnalysis(true)}>📊 View Report</button>}
-        {!isObserver&&result.canViewFeedback&&result.sessionId&&<button className="btn-s" style={{borderColor:"rgba(124,58,237,.28)",color:"var(--vio)"}} onClick={openFeedbackChat}>💬 Ask AI About Feedback</button>}
+        
         {!isObserver&&<button className="btn-s" style={{borderColor:"rgba(45,156,219,.28)",color:"var(--sky)"}} onClick={handleDownload}>📥 Download Report</button>}
         <button className="btn-p" style={{fontSize:13,width:"auto",padding:"10px 22px"}} onClick={onNew}>🎓 Back</button>
       </div>
