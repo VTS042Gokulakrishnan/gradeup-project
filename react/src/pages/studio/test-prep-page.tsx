@@ -9,6 +9,7 @@ import { useTheme } from '../../hooks/use-theme';
 import { Input } from '../../components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "../../components/ui/dropdown-menu";
+import FunnyLoader from "../../components/ui/FunnyLoader";
 
 const initialTestPrepTopics = [
   { id: 1, subject: 'Physics', topic: 'Final Exam Review', progress: 75, color: 'blue', sessions: 3, quizzes: 5, gradient: 'from-blue-500 to-blue-400', progressColor: 'bg-blue-500' },
@@ -36,29 +37,7 @@ const colorMap = {
 };
 const subjectColorKeys = Object.keys(subjectColors);
 
-const FunnyLoader = () => (
-    <div className="flex flex-col items-center justify-center gap-4">
-        <motion.div
-            animate={{ 
-                scale: [1, 1.1, 1, 1.1, 1],
-                rotate: [0, 10, -10, 10, 0],
-            }}
-            transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
-        >
-            <BrainCircuit className="h-20 w-20 text-purple-400" />
-        </motion.div>
-        <motion.p 
-            initial={{ opacity: 0.7 }}
-            animate={{ opacity: [0.7, 1, 0.7] }}
-            transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-            className="text-lg font-semibold text-slate-600 dark:text-slate-300"
-        >
-            Brewing knowledge potions...
-        </motion.p>
-    </div>
-);
-
-const TestPrepPage = () => {
+const TestPrepDashboard = () => {
   const { theme, setTheme } = useTheme();
   const [, setLocation] = useLocation();
   const [prepPlans, setPrepPlans] = useState(initialTestPrepTopics);
@@ -324,4 +303,4 @@ const TestPrepPage = () => {
   );
 };
 
-export default TestPrepPage;
+export default TestPrepDashboard;

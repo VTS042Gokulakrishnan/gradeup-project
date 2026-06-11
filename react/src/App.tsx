@@ -30,6 +30,7 @@ import CommunityNewPage from "./pages/CommunityPage";
 import Landing from "./pages/landing";
 import NotFound from "./pages/not-found";
 import BookContentWindow from "./components/BookContentWindow/BookContentWindow";
+import BookContentWindowDemo from "./components/BookContentWindow/BookContentWindowDemo";
 import BookGallery from "./components/BookGallery";
 import SeminarToolPage from "./pages/seminar-tool-page";
 import DebateToolPage from "./pages/debate-tool-page";
@@ -117,7 +118,8 @@ function AppWithAuth() {
         <Route path="/auth" component={AuthPage} />
         <Route path="/forgot-password" component={ForgotPasswordPage} />
         <ProtectedRoute path="/enhanced-view" component={EnhancedView} />
-        <ProtectedRoute path="/bookExpanded" component={BookContentWindow} />
+        {/* <ProtectedRoute path="/bookExpanded" component={BookContentWindow} /> */}
+        <ProtectedRoute path="/bookExpanded" component={BookContentWindowDemo} />
         <ProtectedRoute path="/bookexpanded" component={BookContentWindow} />
         <ProtectedRoute path="/bookGallery" component={BookGallery} />
         <ProtectedRoute path="/seminar-tool" component={SeminarToolPage} />

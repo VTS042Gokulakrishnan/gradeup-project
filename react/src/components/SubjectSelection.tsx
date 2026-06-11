@@ -23,7 +23,8 @@ const css = `
 .ss-root {
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   background: #f8fafc;
-  // min-height: 100%;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow-y: auto; 

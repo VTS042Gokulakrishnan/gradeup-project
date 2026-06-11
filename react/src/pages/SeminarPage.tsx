@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useDebateLivekit } from "../hooks/useDebateLivekit";
 import jsPDF from "jspdf";
-import { useSeminarLivekit } from "../hooks/useSeminarLivekit";
 
 import Navigation from "../components/navigation";
 import FormattedAIContent from "../components/ai/FormattedAIContent";
@@ -1955,13 +1955,13 @@ function SeminarSetupIntegrated({ onBack, onLaunch }) {
   const [copied, setCopied] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [joining, setJoining] = useState(false);
+  const [setupFile, setSetupFile] = useState<File | null>(null);
   const [joinProgress, setJoinProgress] = useState(0);
   const [joinId, setJoinId] = useState("");
   const [selectedSession, setSelectedSession] = useState(null);
   const [onlineSessions, setOnlineSessions] = useState([]);
   const [inviteInput, setInviteInput] = useState("");
   const [invitees, setInvitees] = useState([]);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const nameInitializedRef = useRef(false);
   const roomId = useRef(genId());
   const roomLink = genRoomLink(roomId.current);
@@ -2219,23 +2219,14 @@ function SeminarSetupIntegrated({ onBack, onLaunch }) {
       }
 
       if (seminarMode === "session" && sessionSubMode === "presenter") {
-        const selectedUnit = availableUnits.find((item) => item.id === selectedUnitId);
-        const session = await startSeminar({
+        const room = await createSeminarRoom({
           sessionId: roomId.current,
+          roomLink,
           unitId: selectedUnitId,
           candidateId: candidate.candidateId,
           candidateName: candidate.candidateName,
           topic: finalTopic,
-          subject: selectedUnit?.subject || selectedSubjectLabel,
-          unitNumber: selectedUnit?.unitNumber ?? undefined,
-          board: selectedUnit?.board || undefined,
-          classNumber: selectedUnit?.standard || undefined,
-          unitName: selectedUnit?.unitTitle || selectedUnit?.unitLabel || unit,
-          mode: "main",
-          session_mode: "main",
-          file: uploadedFile || null,
         });
-        const sessionId = session?.liveSession?.sessionId || session?.session_id || session?.sessionId || roomId.current;
         onLaunch({
           name,
           candidateId: candidate.candidateId,
@@ -2251,12 +2242,13 @@ function SeminarSetupIntegrated({ onBack, onLaunch }) {
           date: scheduledInfo?.date,
           time: scheduledInfo?.time,
           unitId: selectedUnitId,
-          roomId: sessionId,
-          sessionId,
-          liveSession: session?.liveSession || null,
-          initialFacilitatorMessage: session?.ai_greeting || session?.message || session?.opening_statement || "",
+          roomId: room?.session_id || room?.sessionId || roomId.current,
+          sessionId: room?.session_id || room?.sessionId || roomId.current,
+          liveSession: room?.liveSession || null,
+          initialFacilitatorMessage: "",
           seminarMode: "session",
           sessionSubMode: "presenter",
+          setupFile: setupFile || null,
         });
         return;
       }
@@ -2499,17 +2491,11 @@ function SeminarSetupIntegrated({ onBack, onLaunch }) {
                       <div className="link-lbl">🔗 Your Room Link — Share with Observers</div>
                       <div className="link-row"><span className="link-val">{roomLink}</span><button className="copy-btn" onClick={copyLink}>{copied ? "✓ Copied" : "Copy"}</button></div>
                     </div>
-                    <div className="sec-div">Upload Presentation (Optional)</div>
-                    <div className="fi">
-                      <label className="fl">PDF or PowerPoint for AI context & screen share</label>
-                      <div style={{display:"flex",alignItems:"center",gap:10,marginTop:6}}>
-                        <label style={{flex:1,padding:"9px 14px",borderRadius:10,border:"1.5px dashed rgba(0,195,122,.35)",background:"rgba(0,195,122,.04)",cursor:"pointer",fontSize:12,color:"var(--t2)",display:"flex",alignItems:"center",gap:8}}>
-                          <span style={{fontSize:16}}>📎</span>
-                          <span>{uploadedFile ? uploadedFile.name : "Choose PDF, PPT, or PPTX…"}</span>
-                          <input type="file" accept=".pdf,.ppt,.pptx,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" style={{display:"none"}} onChange={(e)=>{const f=e.target.files?.[0]||null;setUploadedFile(f);if(f)toast$(`📎 ${f.name} ready to share`,"success");}}/>
-                        </label>
-                        {uploadedFile && <button className="btn-s" style={{padding:"8px 10px",fontSize:11}} onClick={()=>setUploadedFile(null)}>✕ Remove</button>}
-                      </div>
+                    <div className="sec-div">Upload Presentation File</div>
+                    <div style={{ padding: "12px", borderRadius: 12, background: "rgba(255,255,255,.03)", border: "1px dashed rgba(255,255,255,.15)", marginBottom: 4 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.5)", marginBottom: 7 }}>📎 PDF / PPT / PPTX — Optional. Sent to AI when session starts.</div>
+                      <input type="file" accept=".pdf,.ppt,.pptx" onChange={e => { if (e.target.files && e.target.files[0]) setSetupFile(e.target.files[0]); }} style={{ width: "100%", padding: "8px", background: "rgba(255,255,255,.04)", border: "1px dashed rgba(255,255,255,.18)", borderRadius: "8px", color: "white", fontSize: 12 }} />
+                      {setupFile && <div style={{ marginTop: 6, fontSize: 11, color: "#5ee3b7" }}>✅ {setupFile.name}</div>}
                     </div>
                   </>
                 )}
@@ -4470,29 +4456,12 @@ function PresenterRoom({config,onEnd}) {
   const [roomError,setRoomError]=useState("");
   const [starting,setStarting]=useState(false);
   const [ending,setEnding]=useState(false);
+  const [sessionFile,setSessionFile]=useState(config.setupFile || null);
   const [sendingChat,setSendingChat]=useState(false);
   const [isHostSpeaking,setIsHostSpeaking]=useState(false);
-  const [sharedFile,setSharedFile]=useState<{url:string,name:string,isPdf:boolean}|null>(null);
-  const sharedFileInputRef=useRef<HTMLInputElement>(null);
   const aiVoice=useAIVoice();
   const {show:toast$,node:toastNode}=useToast();
   const presenterColor=avColor(config.name);
-  const livekitApiBase = `${import.meta.env.VITE_API_BASE_URL || ""}`;
-  const {
-    isMuted: livekitMuted,
-    muteLocalAudio: livekitMute,
-    unmuteLocalAudio: livekitUnmute,
-    connected: livekitConnected,
-  } = useSeminarLivekit({
-    sessionId: config.sessionId || "",
-    candidateId: String(config.candidateId || ""),
-    candidateName: config.name || "",
-    enabled: Boolean(config.sessionId && config.candidateId),
-    role: "host",
-    localStream: config.stream || null,
-    apiBase: livekitApiBase,
-    startMuted: !config.micOn,
-  });
   const chatEndRef=useRef(null);
   const pollingRef=useRef(null);
   const completionHandledRef=useRef(false);
@@ -4501,9 +4470,24 @@ function PresenterRoom({config,onEnd}) {
   const latestTimerRef=useRef(timer);
   const latestOnEndRef=useRef(onEnd);
   const currentCandidateId = String(config.candidateId || config.liveSession?.hostCandidateId || "");
+  // LiveKit — host mic stream (mic was granted in MicPreviewModal, stored in config.stream)
+  const livekitHost = useDebateLivekit({
+    sessionId: config.sessionId || "",
+    candidateId: currentCandidateId,
+    candidateName: config.name,
+    enabled: Boolean(config.sessionId && config.stream),
+    localStream: config.stream || null,
+    apiBase: `${process.env.REACT_APP_API_BASE_URL}`,
+    startMuted: false,
+  });
   const isGuestUser = Boolean(config.isGuest);
-  const participantList = (liveSession?.participants || []).filter((item)=>!item.isAi);
-  const observerList = participantList.filter((item)=>!item.isHost);
+const participantList = (liveSession?.participants || []).filter((item)=>!item.isAi);
+  const STALE_THRESHOLD_MS = 35000;
+  const observerList = participantList.filter((item)=>{
+    if(item.isHost) return false;
+    if(!item.lastSeenAt) return true; // keep if never recorded (legacy)
+    return Date.now() - new Date(item.lastSeenAt).getTime() < STALE_THRESHOLD_MS;
+  });
   const pendingRequests = getPendingSeminarSpeakRequests(liveSession);
   const pendingRequest = pendingRequests[0] || null;
   const roomStatus = liveSession?.status || "waiting";
@@ -4514,7 +4498,15 @@ function PresenterRoom({config,onEnd}) {
   useEffect(()=>{latestConfigRef.current = config;},[config]);
   useEffect(()=>{latestTimerRef.current = timer;},[timer]);
   useEffect(()=>{latestOnEndRef.current = onEnd;},[onEnd]);
-
+  useEffect(() => {
+    if (livekitHost.connected) {
+      console.log("[PresenterRoom] ✅ LiveKit connected successfully");
+    } else if (livekitHost.error) {
+      console.error("[PresenterRoom] ❌ LiveKit connection error:", livekitHost.error);
+    } else {
+      console.log("[PresenterRoom] 🔄 LiveKit connecting...");
+    }
+  }, [livekitHost.connected, livekitHost.error]);
   const syncSession = useCallback(async (showFullLoader = false)=>{
     const latestConfig = latestConfigRef.current;
     if(!latestConfig?.sessionId) return;
@@ -4534,6 +4526,7 @@ function PresenterRoom({config,onEnd}) {
           exchanges: mapSeminarTurnsToMessages(session, latestConfig.name).length,
           presenterName: latestConfig.name,
           modeType: "session",
+          isHost: true,
           feedback: session?.feedback || session?.results || session?.metadata || null,
           scores: session?.scores || session?.results?.scores || null,
           canViewFeedback: true,
@@ -4546,7 +4539,7 @@ function PresenterRoom({config,onEnd}) {
     }
   },[]);
 
-  useEffect(()=>{
+useEffect(()=>{
     syncSession(true);
     pollingRef.current = setInterval(()=>{ syncSession(false).catch(()=>null); },3000);
     return ()=>{
@@ -4555,6 +4548,14 @@ function PresenterRoom({config,onEnd}) {
       if(config.stream&&typeof config.stream.getTracks==="function") config.stream.getTracks().forEach((track)=>track.stop());
     };
   },[]);
+
+  // Ensure mic track is enabled when session goes live, disabled in waiting room
+  useEffect(()=>{
+    const s = config.stream;
+    if(!s || typeof s.getAudioTracks !== "function") return;
+    const isLive = roomStatus === "active";
+    s.getAudioTracks().forEach(t => { t.enabled = isLive && micOn; });
+  },[roomStatus, micOn, config.stream]);
 
   useEffect(()=>{
     window.history.pushState({ seminarRoom: true }, "", window.location.href);
@@ -4568,13 +4569,40 @@ function PresenterRoom({config,onEnd}) {
 
   useEffect(()=>{
     if(roomStatus === "active" && !greetingPlayedRef.current){
-      greetingPlayedRef.current = true;
+      const greeting =
+        liveSession?.metadata?.ai_greeting ||
+        liveSession?.metadata?.message ||
+        liveSession?.turns?.find((turn)=>turn.turnType === "greeting")?.message ||
+        "";
+      if(greeting){
+        greetingPlayedRef.current = true;
+        aiVoice.speak(greeting);
+      }
     }
-  },[roomStatus]);
+  },[aiVoice.speak, liveSession, roomStatus]);
 
   async function handleStartRoom(){
     setStarting(true);
     try{
+      // If host uploaded a file, send it to the seminar start endpoint first
+      if(sessionFile){
+        try{
+          const formData = new FormData();
+          formData.append("file", sessionFile);
+          formData.append("sessionId", config.sessionId);
+          formData.append("candidateId", currentCandidateId);
+          formData.append("candidateName", config.name);
+          formData.append("topic", config.topic);
+          formData.append("unitId", config.unitId || "");
+          formData.append("mode", "main");
+          await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/v1/seminar/start`, {
+            method: "POST",
+            body: formData,
+          });
+        } catch(fileError){
+          console.warn("[PresenterRoom] file upload during startRoom failed", fileError);
+        }
+      }
       const response = await startSeminarRoom({
         sessionId: config.sessionId,
         unitId: config.unitId,
@@ -4672,8 +4700,9 @@ function PresenterRoom({config,onEnd}) {
         exchanges: messages.length,
         presenterName: config.name,
         modeType: "session",
-        feedback: response?.feedback || response?.results || response?.message || response || null,
-        scores: response?.scores || response?.results?.scores || null,
+        isHost: true,
+        feedback: response?.feedback || response?.data?.feedback || response?.results || response?.data?.results || response?.message || response || null,
+        scores: response?.scores || response?.data?.scores || response?.results?.scores || response?.data?.results?.scores || response?.liveSession?.scores || null,
         canViewFeedback: true,
       });
     } catch(error){
@@ -4704,7 +4733,11 @@ function PresenterRoom({config,onEnd}) {
         <div className="room-divider"/>
         <div className="room-topic"><strong>{config.subject&&`${config.subject}${config.unit?` · ${config.unit}`:""} · `}</strong>{config.topic}</div>
         <div className="r-pill rp-timer">{timer}</div>
-        <div className="r-pill rp-ai">{waitingRoom ? "🪪 Waiting Room" : "🎙️ Live Session"}</div>
+        <div className="r-pill rp-ai" style={!waitingRoom ? {background:"rgba(229,62,62,.12)",borderColor:"rgba(229,62,62,.3)",color:"#fca5a5"} : {}}>
+          {!waitingRoom && <span style={{display:"inline-block",width:7,height:7,borderRadius:"50%",background:"#ef4444",marginRight:5,animation:"pulse 1s infinite",verticalAlign:"middle"}}/>}
+          {waitingRoom ? "🪪 Waiting Room" : "● LIVE"}
+         
+        </div>
         <div className="r-pill" style={{background:"rgba(0,195,122,.1)",borderColor:"rgba(0,195,122,.2)",color:"#5ee3b7"}}>👁 {observerCount}</div>
         <button className="rbar-end-btn" onClick={()=>setShowBackConfirm(true)}>← Back</button>
       </div>
@@ -4730,58 +4763,32 @@ function PresenterRoom({config,onEnd}) {
             </div>
             <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:8}}>
               {observerList.length === 0 ? (
-                <div style={{padding:"14px",borderRadius:14,background:"var(--surf2)",border:"1px solid var(--bdr)",fontSize:12,color:"var(--t2)"}}>No users have joined yet. Share the room link above.</div>
-              ) : observerList.map((participant)=>{
-                const isApproved = participant.status === "approved_to_speak" || participant.status === "approved";
-                return (
-                <div key={participant.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,background:"var(--surf2)",border:`1px solid ${isApproved?"rgba(0,195,122,.25)":"var(--bdr)"}`}}>
+                <div style={{padding:"14px",borderRadius:14,background:"var(--surf2)",border:"1px solid var(--bdr)",fontSize:12,color:"var(--t2)"}}>No users have joined yet.</div>
+              ) : observerList.map((participant)=>(
+                <div key={participant.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,background:"var(--surf2)",border:"1px solid var(--bdr)"}}>
                   <div className="invite-av" style={{background:avColor(participant.name)}}>{avInit(participant.name)}</div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:12.5,fontWeight:700,color:"var(--t1)"}}>{participant.name}</div>
-                    <div style={{fontSize:10.5,color:isApproved?"#5ee3b7":"var(--t2)"}}>{isApproved?"✅ Approved to enter":"⏳ Waiting to join"}</div>
+                    <div style={{fontSize:10.5,color:"var(--t2)"}}>Waiting to join seminar</div>
                   </div>
-                  <div style={{display:"flex",gap:6}}>
-                    {!isApproved && <button className="btn-s" style={{padding:"6px 10px",fontSize:11,background:"rgba(0,195,122,.1)",borderColor:"rgba(0,195,122,.3)",color:"#5ee3b7"}} onClick={()=>handleSpeakApproval({participantId:participant.id,participantName:participant.name},true)}>✓ Allow</button>}
-                    <button className="btn-d" style={{padding:"6px 10px",fontSize:11}} onClick={()=>handleRemoveParticipant(participant)}>Remove</button>
-                  </div>
+                  <button className="btn-d" style={{padding:"7px 10px"}} onClick={()=>handleRemoveParticipant(participant)}>Remove</button>
                 </div>
-                );
-              })}
+              ))}
             </div>
-            <button className="btn-p" style={{marginTop:14}} onClick={handleStartRoom} disabled={starting || !config.unitId}>{starting ? "Starting Seminar..." : "Start Seminar"}</button>
+          <div style={{marginTop:14,padding:"12px",borderRadius:12,background:"rgba(255,255,255,.03)",border:"1px dashed rgba(255,255,255,.15)",marginBottom:10}}>
+              <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.5)",marginBottom:7}}>📎 Upload Presentation File (PDF/PPT) — Optional</div>
+              <input type="file" accept=".pdf,.ppt,.pptx" onChange={e=>{if(e.target.files&&e.target.files[0])setSessionFile(e.target.files[0]);}} style={{width:"100%",padding:"8px",background:"rgba(255,255,255,.04)",border:"1px dashed rgba(255,255,255,.18)",borderRadius:"8px",color:"white",fontSize:12}}/>
+              {sessionFile&&<div style={{marginTop:6,fontSize:11,color:"#5ee3b7"}}>✅ {sessionFile.name}</div>}
+            </div>
+            <button className="btn-p" style={{marginTop:4}} onClick={handleStartRoom} disabled={starting || !config.unitId}>{starting ? "Starting Seminar..." : "Start Seminar"}</button>
           </div>
         </div>
       ) : (
         <div className="room-body">
           <div className="grid-area">
             <div className="ss-area">
-              {sharedFile ? (
-                <div style={{width:"100%",height:"100%",position:"relative",display:"flex",flexDirection:"column"}}>
-                  <div className="ss-active-label"><div className="ss-active-dot"/>📎 {sharedFile.name} · {observerCount} watching<button style={{marginLeft:"auto",background:"rgba(229,62,62,.8)",border:"none",borderRadius:6,color:"#fff",fontSize:11,padding:"2px 8px",cursor:"pointer"}} onClick={()=>{URL.revokeObjectURL(sharedFile.url);setSharedFile(null);}}>✕ Stop</button></div>
-                  {sharedFile.isPdf ? (
-                    <iframe src={sharedFile.url} style={{flex:1,width:"100%",border:"none",borderRadius:"0 0 8px 8px"}} title={sharedFile.name}/>
-                  ) : (
-                    <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:12,color:"rgba(255,255,255,.5)"}}>
-                      <div style={{fontSize:52}}>📊</div>
-                      <div style={{fontSize:13,fontWeight:700,color:"rgba(255,255,255,.7)"}}>{sharedFile.name}</div>
-                      <div style={{fontSize:11,color:"rgba(255,255,255,.35)",textAlign:"center",maxWidth:260}}>PowerPoint files display in the AI context. Use screen share to show slides to participants.</div>
-                      <a href={sharedFile.url} download={sharedFile.name} style={{padding:"8px 18px",borderRadius:8,background:"rgba(45,156,219,.2)",border:"1px solid rgba(45,156,219,.35)",color:"#7ed3f7",fontSize:12,fontWeight:700,textDecoration:"none"}}>⬇ Download</a>
-                    </div>
-                  )}
-                </div>
-              ) : !screenSharing ? (
-                <div className="ss-placeholder">
-                  <div style={{fontSize:52,opacity:.18}}>🖥️</div>
-                  <div style={{fontSize:13,fontWeight:700}}>Screen not shared yet</div>
-                  <div style={{display:"flex",gap:10,marginTop:14}}>
-                    <button style={{padding:"9px 20px",borderRadius:10,background:"var(--grad)",border:"none",cursor:"pointer",fontSize:13,fontWeight:700,color:"#fff"}} onClick={toggleScreen}>🖥️ Share Screen</button>
-                    <button style={{padding:"9px 16px",borderRadius:10,background:"rgba(45,156,219,.15)",border:"1px solid rgba(45,156,219,.3)",cursor:"pointer",fontSize:13,fontWeight:700,color:"#7ed3f7"}} onClick={()=>sharedFileInputRef.current?.click()}>📎 Share File</button>
-                  </div>
-                  <input ref={sharedFileInputRef} type="file" accept=".pdf,.ppt,.pptx,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" style={{display:"none"}} onChange={(e)=>{const f=e.target.files?.[0];if(f){const url=URL.createObjectURL(f);setSharedFile({url,name:f.name,isPdf:f.type==="application/pdf"||f.name.toLowerCase().endsWith(".pdf")});toast$(`📎 Sharing ${f.name}`,"success");}}}/>
-                </div>
-              ) : (
-                <><div className="ss-active-label"><div className="ss-active-dot"/>Screen Sharing Active · {observerCount} watching</div><div style={{fontSize:11,color:"rgba(255,255,255,.3)"}}>Your screen is shared</div></>
-              )}
+              {!screenSharing?(<div className="ss-placeholder"><div style={{fontSize:52,opacity:.18}}>🖥️</div><div style={{fontSize:13,fontWeight:700}}>Screen not shared yet</div><button style={{marginTop:14,padding:"9px 20px",borderRadius:10,background:"var(--grad)",border:"none",cursor:"pointer",fontSize:13,fontWeight:700,color:"#fff"}} onClick={toggleScreen}>🖥️ Start Screen Share</button></div>)
+                :(<><div className="ss-active-label"><div className="ss-active-dot"/>Screen Sharing Active · {observerCount} watching</div><div style={{fontSize:11,color:"rgba(255,255,255,.3)"}}>Your screen is shared</div></>)}
               {reaction&&<div key={reaction.k} style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",fontSize:46,animation:"rPop 2s forwards",pointerEvents:"none",zIndex:5}}>{reaction.emoji}</div>}
             </div>
             <div className="presenter-strip">
@@ -4800,9 +4807,17 @@ function PresenterRoom({config,onEnd}) {
             </div>
             <div className="ctrl-bar">
               <div className="cg">
-                <button className={`cbtn ${micOn?"on":"off"}`} onMouseDown={()=>setIsHostSpeaking(true)} onMouseUp={()=>setIsHostSpeaking(false)} onMouseLeave={()=>setIsHostSpeaking(false)} onClick={()=>{const next=!micOn;setMicOn(next);if(next){livekitUnmute();}else{livekitMute();}}}><span className="cbtn-ic">{micOn?"🎤":"🔇"}</span><span>{micOn?"Mute":"Unmute"}</span></button>
+                <button className={`cbtn ${micOn?"on":"off"}`} onMouseDown={()=>setIsHostSpeaking(true)} onMouseUp={()=>setIsHostSpeaking(false)} onMouseLeave={()=>setIsHostSpeaking(false)} onClick={()=>{
+                  const next = !micOn;
+                  setMicOn(next);
+                  // Enable/disable the actual audio track on the stream
+                  const s = config.stream;
+                  if(s && typeof s.getAudioTracks === "function"){
+                    s.getAudioTracks().forEach(t => { t.enabled = next; });
+                  }
+                  if(next){ livekitHost?.unmuteLocalAudio?.(); } else { livekitHost?.muteLocalAudio?.(); }
+                }}><span className="cbtn-ic">{micOn?"🎤":"🔇"}</span><span>{micOn?"Mute":"Unmute"}</span></button>
                 <button className={`cbtn${screenSharing?" hi":""}`} onClick={toggleScreen}><span className="cbtn-ic">🖥</span><span>{screenSharing?"Stop":"Share"}</span></button>
-                <button className={`cbtn${sharedFile?" hi":""}`} onClick={()=>sharedFileInputRef.current?.click()}><span className="cbtn-ic">📎</span><span>{sharedFile?"File On":"Share File"}</span></button>
                 <div style={{position:"relative"}}><button className={`cbtn${showReactions?" hi":""}`} onClick={()=>setShowReactions((value)=>!value)}><span className="cbtn-ic">😊</span><span>React</span></button>{showReactions&&<div className="react-pop">{REACTIONS.map((item)=><button key={item} className="react-em" onClick={()=>sendReaction(item)}>{item}</button>)}</div>}</div>
               </div>
               <div className="cg">
@@ -5025,25 +5040,13 @@ function ObserverRoom({config,onEnd}) {
   const [requestingSpeak,setRequestingSpeak]=useState(false);
   const {show:toast$,node:toastNode}=useToast();
   const presenterName=liveSession?.hostCandidateName||config.liveSession?.hostCandidateName||"Presenter";
+  // LiveKit — participants join as listen-only (no mic track)
+  // We pass a dummy localStream=null and enabled only when session is active
+
   const presenterColor=avColor(presenterName);
   const chatEndRef=useRef(null);
   const pollingRef=useRef(null);
   const completionHandledRef=useRef(false);
-  const observerLivekitApiBase = `${import.meta.env.VITE_API_BASE_URL || ""}`;
-  const {
-    isMuted: obsLivekitMuted,
-    muteLocalAudio: obsLivekitMute,
-    unmuteLocalAudio: obsLivekitUnmute,
-  } = useSeminarLivekit({
-    sessionId: config.sessionId || "",
-    candidateId: String(config.candidateId || ""),
-    candidateName: config.name || "",
-    enabled: Boolean(config.sessionId && config.candidateId),
-    role: "observer",
-    localStream: null,
-    apiBase: observerLivekitApiBase,
-    startMuted: true,
-  });
   const latestConfigRef=useRef(config);
   const latestTimerRef=useRef(timer);
   const latestOnEndRef=useRef(onEnd);
@@ -5051,7 +5054,15 @@ function ObserverRoom({config,onEnd}) {
   const isGuestUser = Boolean(config.isGuest);
   const approvedToSpeak = isSeminarParticipantApproved(liveSession, currentCandidateId);
   const roomStatus = liveSession?.status || "waiting";
-
+  const livekitParticipant = useDebateLivekit({
+    sessionId: config.sessionId || "",
+    candidateId: currentCandidateId,
+    candidateName: config.name,
+    enabled: Boolean(config.sessionId && roomStatus === "active"),
+    localStream: null, // participants have no mic track
+    apiBase: `${process.env.REACT_APP_API_BASE_URL}`,
+    startMuted: true,
+  });
   useEffect(()=>{chatEndRef.current?.scrollIntoView({behavior:"smooth"});},[messages]);
   useEffect(()=>{setMessages(mapSeminarTurnsToMessages(liveSession, config.name));},[liveSession, config.name]);
   useEffect(()=>{if(!approvedToSpeak && micOn) setMicOn(false);},[approvedToSpeak, micOn]);
@@ -5069,21 +5080,50 @@ function ObserverRoom({config,onEnd}) {
       setRoomError("");
       if((session?.status === "completed" || session?.status === "ending") && !completionHandledRef.current){
         completionHandledRef.current = true;
-        if(pollingRef.current) clearInterval(pollingRef.current);
-        toast$("The seminar session has ended.","info");
-        setTimeout(()=>navigateAfterSeminarExit(latestConfig.isGuest || false), 1500);
+        latestOnEndRef.current({
+          sessionId: latestConfig.sessionId,
+          timer: latestTimerRef.current,
+          topic: session?.topic || latestConfig.topic,
+          subject: session?.subject || latestConfig.subject,
+          unit: session?.unit || latestConfig.unit,
+          participants: 0,
+          exchanges: mapSeminarTurnsToMessages(session, latestConfig.name).length,
+          presenterName,
+          modeType: "observer",
+          isHost: false,
+          canViewFeedback: false,
+          scores: null,
+          feedback: null,
+        });
       }
     } catch(error){
       setRoomError(error?.message || "Unable to refresh the seminar room.");
     } finally {
       if(showFullLoader) setRoomLoading(false);
     }
-  },[presenterName, toast$]);
+  },[presenterName]);
 
-  useEffect(()=>{
+useEffect(()=>{
     syncSession(true);
     pollingRef.current = setInterval(()=>{ syncSession(false).catch(()=>null); },3000);
     return ()=>{ if(pollingRef.current) clearInterval(pollingRef.current); };
+  },[]);
+
+  // Heartbeat — keep lastSeenAt fresh so the host knows this tab is still open
+  useEffect(()=>{
+    if(!config.sessionId || !currentCandidateId) return;
+    const heartbeat = async ()=>{
+      try{
+        await fetch(`${(window as any).__API_BASE__ || ""}/api/v1/seminar/join`, {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ sessionId: config.sessionId, candidateId: currentCandidateId, candidateName: config.name, role: "observer" }),
+        });
+      } catch {}
+    };
+    heartbeat();
+    const hbId = setInterval(heartbeat, 20000);
+    return ()=>clearInterval(hbId);
   },[]);
 
   useEffect(()=>{
@@ -5141,7 +5181,7 @@ function ObserverRoom({config,onEnd}) {
   function sendReaction(emoji){setShowReactions(false);const k=Date.now();setReaction({emoji,k});setTimeout(()=>setReaction(null),2400);}
   const fmt=(d)=>new Date(d).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
   function leaveAndRedirect(){
-    onEnd({timer,topic:liveSession?.topic||config.topic,subject:liveSession?.subject||config.subject||"",unit:liveSession?.unit||config.unit||"",participants:0,exchanges:messages.length,presenterName,modeType:"observer"});
+    onEnd({timer,topic:liveSession?.topic||config.topic,subject:liveSession?.subject||config.subject||"",unit:liveSession?.unit||config.unit||"",participants:0,exchanges:messages.length,presenterName,modeType:"observer",isHost:false,canViewFeedback:false,scores:null,feedback:null});
     setTimeout(()=>navigateAfterSeminarExit(isGuestUser),50);
   }
 
@@ -5290,7 +5330,7 @@ function SeminarResults({result,onNew}) {
           <div key={s.l} className="res-stat" style={{animationDelay:`${i*.1}s`}}><div className="res-stat-ic">{s.i}</div><div className="res-stat-v">{s.v}</div><div className="res-stat-l">{s.l}</div></div>
         ))}
       </div>
-{!isObserver && result.canViewFeedback && result.scores && Object.keys(result.scores).length > 0 && (
+{(result.isHost === true) && !isObserver && result.canViewFeedback && result.scores && Object.keys(result.scores).length > 0 && (
         <div style={{width:"100%",maxWidth:780,margin:"6px auto 18px",display:"flex",flexDirection:"column",gap:14}}>
 
           {/* Score Cards */}
@@ -5471,7 +5511,8 @@ export default function SeminarPage() {
       if(user){
         const candidate = getCandidateContext(user || {});
         candidateId = candidate.candidateId;
-        candidateName = candidate.candidateName;
+        // Prefer the typed name if it was entered; fall back to account name
+        candidateName = (nameOverride || guestName || candidate.candidateName || "").trim() || candidate.candidateName;
       } else {
         const safeName = (nameOverride || guestName || "").trim();
         if(!safeName){

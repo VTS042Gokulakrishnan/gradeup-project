@@ -1,0 +1,225 @@
+{
+  "success": true,
+  "generated_at": "2026-06-09T12:20:39.368167Z",
+  "subject": "Social",
+  "total_topics": 14,
+  "total_sections": 7,
+  "units": [
+    {
+      "unit_number": 1,
+      "unit_title": "Outbreak of World War I and Its Aftermath",
+      "sections": [
+        {
+          "section_title": "Scramble for Colonies",
+          "debate_topics": [
+            {
+              "topic_title": "Is it better to play in the schoolyard or go on an adventure outside?",
+              "topic_description": "Some people think playing in the schoolyard is safer and more fun because you can see your friends, while others believe exploring outside helps you learn new things and be more adventurous. Which way do you think is better for having fun and learning?",
+              "key_concepts": [
+                "capitalism",
+                "colonization",
+                "exploration"
+              ],
+              "source_section": "Scramble for Colonies",
+              "source_unit": "Outbreak of World War I and Its Aftermath",
+              "subject": "Social"
+            },
+            {
+              "topic_title": "Should companies focus on making as many products as possible or on making the best quality products?",
+              "topic_description": "Some argue that making a lot of products helps companies earn more money and provide for more people, while others believe that focusing on quality leads to better satisfaction and trust from customers. What do you think is more important for a company's success?",
+              "key_concepts": [
+                "capitalism",
+                "monopoly",
+                "imperialism"
+              ],
+              "source_section": "Scramble for Colonies",
+              "source_unit": "Outbreak of World War I and Its Aftermath",
+              "subject": "Social"
+            }
+          ],
+          "topics_count": 2
+        },
+        {
+          "section_title": "Rivalry of Great Powers",
+          "debate_topics": [
+            {
+              "topic_title": "Is competition between countries good or bad?",
+              "topic_description": "When countries compete for resources and power, is it beneficial for their people or does it lead to conflicts and problems? Think about how competition affects things like trade, culture, and peace in the world.",
+              "key_concepts": [
+                "national rivalry",
+                "colonisation",
+                "global power dynamics"
+              ],
+              "source_section": "Rivalry of Great Powers",
+              "source_unit": "Outbreak of World War I and Its Aftermath",
+              "subject": "Social"
+            },
+            {
+              "topic_title": "Should countries help each other in times of need?",
+              "topic_description": "When one country faces a disaster or conflict, should other countries step in to help or focus on their own issues? Consider the balance between national interests and global responsibility.",
+              "key_concepts": [
+                "international relations",
+                "colonialism impact",
+                "alliance systems"
+              ],
+              "source_section": "Rivalry of Great Powers",
+              "source_unit": "Outbreak of World War I and Its Aftermath",
+              "subject": "Social"
+            }
+          ],
+          "topics_count": 2
+        },
+        {
+          "section_title": "Causes, Course and Results of World War I",
+          "debate_topics": [
+            {
+              "topic_title": "Does teamwork always lead to better results in sports?",
+              "topic_description": "When a team plays together, do they always perform better than individuals competing alone? Think about situations in your favorite sports where working as a team helped win or where it might have caused problems.",
+              "key_concepts": [
+                "alliances",
+                "cooperation",
+                "conflict"
+              ],
+              "source_section": "Causes, Course and Results of World War I",
+              "source_unit": "Outbreak of World War I and Its Aftermath",
+              "subject": "Social"
+            },
+            {
+              "topic_title": "Is it better to stand up for your country or seek peace with others?",
+              "topic_description": "When countries are in conflict, should people support their country's actions no matter what, or is it more important to find peaceful solutions? Consider examples from history or current events that show both sides.",
+              "key_concepts": [
+                "nationalism",
+                "conflict",
+                "alliances"
+              ],
+              "source_section": "Causes, Course and Results of World War I",
+              "source_unit": "Outbreak of World War I and Its Aftermath",
+              "subject": "Social"
+            }
+          ],
+          "topics_count": 2
+        },
+        {
+          "section_title": "1.4 Russian Revolution and its Impact",
+          "debate_topics": [
+            {
+              "topic_title": "Should people always support their country's government during a war?",
+              "topic_description": "When a country goes to war, citizens often feel pressured to support their government. But is it always right to support the government, even if you disagree with their choices? Think about what happens when people protest or speak out against war efforts.",
+              "key_concepts": [
+                "government support",
+                "citizen rights",
+                "war impact"
+              ],
+              "source_section": "1.4 Russian Revolution and its Impact",
+              "source_unit": "Outbreak of World War I and Its Aftermath",
+              "subject": "Social"
+            },
+            {
+              "topic_title": "Is it better to have a strong leader or a group of leaders making decisions?",
+              "topic_description": "Some people believe that having one strong leader is the best way to lead a country, while others think a group of leaders can make better decisions by sharing ideas. Consider how each approach might affect a country's ability to handle crises like war or revolution.",
+              "key_concepts": [
+                "leadership",
+                "decision-making",
+                "government structure"
+              ],
+              "source_section": "1.4 Russian Revolution and its Impact",
+              "source_unit": "Outbreak of World War I and Its Aftermath",
+              "subject": "Social"
+            }
+          ],
+          "topics_count": 2
+        },
+        {
+          "section_title": "1.5 League of Nations",
+          "debate_topics": [
+            {
+              "topic_title": "Should countries work together to solve global problems like climate change?",
+              "topic_description": "Just like friends help each other out when facing a tough challenge, countries can team up to tackle big issues like climate change. Students should think about the benefits and challenges of international cooperation versus doing things alone.",
+              "key_concepts": [
+                "international cooperation",
+                "global issues",
+                "conflict resolution"
+              ],
+              "source_section": "1.5 League of Nations",
+              "source_unit": "Outbreak of World War I and Its Aftermath",
+              "subject": "Social"
+            },
+            {
+              "topic_title": "Is it better for nations to have strong military forces or to focus on peace and negotiation?",
+              "topic_description": "When problems arise, some people believe having a strong defense is important, while others think it's better to talk things out. Students should consider the pros and cons of each approach in keeping peace among countries.",
+              "key_concepts": [
+                "military power",
+                "peacekeeping",
+                "diplomacy"
+              ],
+              "source_section": "1.5 League of Nations",
+              "source_unit": "Outbreak of World War I and Its Aftermath",
+              "subject": "Social"
+            }
+          ],
+          "topics_count": 2
+        },
+        {
+          "section_title": "Map Work",
+          "debate_topics": [
+            {
+              "topic_title": "Is it more important to know where countries are on a map or to understand their histories?",
+              "topic_description": "Some people think that knowing the location of countries is essential for understanding the world, while others believe that knowing the history of those countries is more important. Students should consider how these two aspects help us understand global events and our place in the world.",
+              "key_concepts": [
+                "map skills",
+                "geography",
+                "historical context"
+              ],
+              "source_section": "Map Work",
+              "source_unit": "Outbreak of World War I and Its Aftermath",
+              "subject": "Social"
+            },
+            {
+              "topic_title": "Do maps help us understand countries better than just reading about them?",
+              "topic_description": "Maps provide a visual way to see where countries are located, but some might argue that reading about a country gives deeper insights into its culture and people. Students can discuss whether seeing a map or reading a story about a place gives them a better understanding.",
+              "key_concepts": [
+                "map interpretation",
+                "cultural awareness",
+                "visual learning"
+              ],
+              "source_section": "Map Work",
+              "source_unit": "Outbreak of World War I and Its Aftermath",
+              "subject": "Social"
+            }
+          ],
+          "topics_count": 2
+        },
+        {
+          "section_title": "REFERENCE BOOKS",
+          "debate_topics": [
+            {
+              "topic_title": "Did World War I change the way countries work together?",
+              "topic_description": "When countries fight, they can either become enemies or find ways to work together afterward. Should countries focus on making peace and friendships after a war, or is it better to be cautious and prepare for future conflicts?",
+              "key_concepts": [
+                "international relations",
+                "conflict resolution",
+                "post-war cooperation"
+              ],
+              "source_section": "REFERENCE BOOKS",
+              "source_unit": "Outbreak of World War I and Its Aftermath",
+              "subject": "Social"
+            },
+            {
+              "topic_title": "Is remembering history important for our future?",
+              "topic_description": "Some people believe that learning about past events like World War I helps us avoid making the same mistakes. Others think that focusing too much on history can hold us back from moving forward. Which side do you agree with?",
+              "key_concepts": [
+                "historical awareness",
+                "learning from mistakes",
+                "progress"
+              ],
+              "source_section": "REFERENCE BOOKS",
+              "source_unit": "Outbreak of World War I and Its Aftermath",
+              "subject": "Social"
+            }
+          ],
+          "topics_count": 2
+        }
+      ]
+    }
+  ]
+}

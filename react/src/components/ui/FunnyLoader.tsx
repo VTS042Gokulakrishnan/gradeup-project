@@ -1,32 +1,45 @@
 import { motion } from 'framer-motion';
 import React from 'react';
 
-const FunnyLoader: React.FC = () => {
+export interface FunnyLoaderProps {
+  text?: string;
+  subtext?: string;
+  fullScreen?: boolean;
+}
+
+const FunnyLoader: React.FC<FunnyLoaderProps> = ({ 
+  text = "Loading…", 
+  subtext,
+  fullScreen = false 
+}) => {
   return (
-    <div className="flex flex-col justify-center items-center py-12 gap-4">
-      <div className="w-48 h-12 border-b-2 border-gray-300 dark:border-gray-600 relative">
-        {/* The running block */}
-        <motion.div
-          className="w-6 h-6 bg-blue-500 rounded-sm absolute bottom-0"
-          initial={{ x: 0 }}
-          animate={{
-            x: [0, 80, 80, 100, 180],
-            y: [0, 0, -30, -30, 0],
-            rotate: [0, 0, 0, 180, 180],
-          }}
-          transition={{
-            duration: 2,
-            ease: "easeInOut",
-            repeat: Infinity,
-            repeatDelay: 0.5,
-          }}
-        />
-        {/* The obstacle */}
-        <div className="w-4 h-4 bg-red-500 absolute bottom-0 left-24" />
+    <div 
+      className={`flex flex-col items-center justify-center gap-5 ${
+        fullScreen ? 'fixed inset-0 bg-background z-[9999]' : 'py-12 w-full h-full min-h-[200px]'
+      }`}
+    >
+      <motion.div 
+        className="w-[60px] h-[60px] rounded-[16px] flex items-center justify-center text-[28px] shadow-[0_0_40px_rgba(0,195,122,0.35)]"
+        style={{ background: 'linear-gradient(135deg, #00c37a, #2d9cdb)' }}
+        animate={{ scale: [1, 1.08, 1] }}
+        transition={{ duration: 1.4, ease: "easeInOut", repeat: Infinity }}
+      >
+        🎓
+      </motion.div>
+      <div className="flex flex-col items-center gap-2 text-center">
+        <div className="text-[15px] font-bold text-foreground tracking-[0.05em]">{text}</div>
+        {subtext && <div className="text-[11px] text-muted-foreground tracking-[0.08em] uppercase">{subtext}</div>}
       </div>
-      <p className="text-sm text-muted-foreground font-semibold animate-pulse">
-        Running to get your answers...
-      </p>
+      
+      {/* Loading Bar */}
+      <div className="w-[200px] h-[3px] bg-muted overflow-hidden mt-1 rounded-full relative">
+        <motion.div 
+          className="h-full absolute left-0 top-0 rounded-full w-full"
+          style={{ background: 'linear-gradient(135deg, #00c37a, #2d9cdb)' }}
+          animate={{ x: ["-100%", "100%"] }}
+          transition={{ duration: 1.5, ease: "easeInOut", repeat: Infinity }}
+        />
+      </div>
     </div>
   );
 };

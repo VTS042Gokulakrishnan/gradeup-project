@@ -1,6 +1,8 @@
 const axios = require("axios");
 
-const PYTHON_TIMEOUT_MS = Number(process.env.PYTHON_REQUEST_TIMEOUT_MS || 300000);
+const PYTHON_TIMEOUT_MS = Number(
+  process.env.PYTHON_REQUEST_TIMEOUT_MS || 300000,
+);
 
 function normalizePythonErrorMessage(value, fallback) {
   if (typeof value === "string" && value.trim()) {
@@ -12,8 +14,11 @@ function normalizePythonErrorMessage(value, fallback) {
       .map((item) => {
         if (typeof item === "string") return item;
         if (!item || typeof item !== "object") return null;
-        const location = Array.isArray(item.loc) ? item.loc.join(".") : item.loc;
-        const message = item.msg || item.message || item.detail || item.reason || null;
+        const location = Array.isArray(item.loc)
+          ? item.loc.join(".")
+          : item.loc;
+        const message =
+          item.msg || item.message || item.detail || item.reason || null;
         if (location && message) return `${location}: ${message}`;
         return message || location || null;
       })
@@ -66,7 +71,9 @@ function buildPythonError(error, url) {
   if (error.response) {
     const pythonError = new Error(
       normalizePythonErrorMessage(
-        error.response.data?.detail ?? error.response.data?.message ?? error.response.data,
+        error.response.data?.detail ??
+          error.response.data?.message ??
+          error.response.data,
         `Python service request failed with ${error.response.status}`,
       ),
     );
@@ -88,7 +95,9 @@ function buildPythonError(error, url) {
     return timeoutError;
   }
 
-  const networkError = new Error(error.message || "Unable to reach Python service");
+  const networkError = new Error(
+    error.message || "Unable to reach Python service",
+  );
   networkError.statusCode = 502;
   networkError.source = "python";
   networkError.details = { code: error.code || null };
@@ -106,13 +115,15 @@ async function callPython({
 }) {
   const url = buildPythonUrl(path);
   const requestHeaders = {
-    ...((
-      (data && typeof data === "object" && !Buffer.isBuffer(data)) ||
-      typeof data === "string"
-    ) ? { "Content-Type": "application/json" } : {}),
+    ...((data && typeof data === "object" && !Buffer.isBuffer(data)) ||
+    typeof data === "string"
+      ? { "Content-Type": "application/json" }
+      : {}),
     ...(headers || {}),
   };
-
+  console.log(
+    `Calling Python service: {url:url,method:method,data:data,params:params}`,
+  );
   try {
     const response = await axios({
       method,

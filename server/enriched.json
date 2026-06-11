@@ -1,0 +1,1385 @@
+{
+  "document_id": "State_Board_10_Social_Class_10_Social_Science_English_2025_Edi",
+  "enriched_at": "2026-06-09T12:14:49.959502Z",
+  "enrichment_model": "gpt-4o-mini",
+  "enrichment_style": "avatar_classroom_teaching",
+  "subject": "social",
+  "board": "State Board",
+  "class_number": "10",
+  "units": [
+    {
+      "unit_number": 1,
+      "title": "Outbreak of World War I and Its Aftermath",
+      "subject": "social",
+      "sections": [
+        {
+          "section_title": "Introduction",
+          "enrichment": {
+            "concept_overview": "Today, we're exploring a pivotal moment in history: the outbreak of World War I and its significant aftermath. This event not only reshaped countries but also left a profound impact on the entire world and our understanding of international relations.",
+            "avatar_explanation": {
+              "teaching_style": "storytelling",
+              "total_duration_estimate": "10 minutes",
+              "segments": [
+                {
+                  "segment_id": "seg_001",
+                  "type": "teaching",
+                  "text": "Let's imagine a world in 1914, where tensions are boiling over and alliances are being questioned. The year 1914 marks a crucial turning point in world history! Can we see how events from as early as 1789 led us here?",
+                  "emotion": "enthusiastic",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_001",
+                  "type": "flashcard",
+                  "card_title": "Flashcard: A Turning Point",
+                  "front": "The year 1914 is considered a turning point in history because it initiated the First World War. Imagine you're in a classroom where a heated debate escalates into a full-on argument. Just like that, political tensions led to a global conflict.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Notice how just like in a heated debate, alliances can change everything.",
+                  "avatar_emotion": "encouraging"
+                },
+                {
+                  "segment_id": "seg_002",
+                  "type": "teaching",
+                  "text": "This conflict was unique; it was the first truly industrial war, which meant that the power of industrialization fueled the strategies and scale of war. Think about how technology impacts our lives today. Can you see parallels with that time?",
+                  "emotion": "thoughtful",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_002",
+                  "type": "flashcard",
+                  "card_title": "Flashcard: Industrialization",
+                  "front": "World War I was the first industrial war, harnessing resources and technology like never before. Imagine using the latest tech in a sports game — it could change the outcome entirely! That’s how industrialization transformed warfare.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Just like in sports where strategy and technology collide, so too did they influence the war.",
+                  "avatar_emotion": "empathetic"
+                },
+                {
+                  "segment_id": "seg_003",
+                  "type": "teaching",
+                  "text": "By the end of the war, the political map of the world had been dramatically redrawn. Can we picture how Germany, Austria-Hungary, and the Ottoman Empire crumbled? It’s fascinating to see how power dynamics shift amongst nations.",
+                  "emotion": "curious",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_004",
+                  "type": "teaching",
+                  "text": "One of the most significant outcomes of the war was the Russian Revolution, which took the world by surprise! It was a major turning point for social structures worldwide and paved the way for new ideologies.",
+                  "emotion": "surprised",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_003",
+                  "type": "flashcard",
+                  "card_title": "Flashcard: Russian Revolution",
+                  "front": "The Russian Revolution was the first of its kind, changing power dynamics and inspiring future revolutions. Think about how a revolutionary idea can influence your community — that’s how profound the Russian Revolution was!",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Just as your ideas can inspire change around you, so too did the revolution shape nations!",
+                  "avatar_emotion": "inspiring"
+                },
+                {
+                  "segment_id": "seg_005",
+                  "type": "teaching",
+                  "text": "As we explore these events, we’ll also discuss the establishment of the League of Nations. It was the first attempt at creating a global organization aimed at fostering peace. Can you feel the hope that came with it?",
+                  "emotion": "warm",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_006",
+                  "type": "teaching",
+                  "text": "In summary, the outbreak of World War I and its aftermath transformed the political and social landscape of the world, prompting new ideologies and frameworks for peace. Let's take this journey of history together and understand its lasting impacts!",
+                  "emotion": "confident",
+                  "visual_aid": null
+                }
+              ]
+            },
+            "faqs": [
+              {
+                "question": "Why is 1914 considered a turning point?",
+                "answer": "Because it marked the beginning of World War I, which fundamentally changed the global political landscape."
+              },
+              {
+                "question": "What were the major empires affected by World War I?",
+                "answer": "The major empires that fell were Germany, Austria-Hungary, and the Ottoman Empire."
+              },
+              {
+                "question": "What was the significance of the Russian Revolution?",
+                "answer": "It was the first successful revolution that aimed to change the socio-political structure of a country."
+              },
+              {
+                "question": "What was the League of Nations?",
+                "answer": "It was an organization set up after World War I aimed at promoting peace and preventing future conflicts."
+              }
+            ],
+            "practice_questions": [
+              {
+                "question": "List the three major empires that were shattered by World War I."
+              },
+              {
+                "question": "Describe how industrialization changed warfare during World War I."
+              },
+              {
+                "question": "What was a direct outcome of the Russian Revolution?"
+              }
+            ],
+            "doubt_context": {
+              "related_sections": [
+                "Causes of World War I",
+                "Impact of the War on Society",
+                "Formation of the League of Nations",
+                "The Russian Revolution and Its Consequences"
+              ],
+              "board": "State Board",
+              "class_number": "10",
+              "subject": "social",
+              "unit_number": 1,
+              "section_title": "Introduction",
+              "max_rag_chunks": 5,
+              "fallback_to_broader_context": true
+            }
+          }
+        },
+        {
+          "section_title": "Scramble for Colonies",
+          "enrichment": {
+            "concept_overview": "Today, we're exploring the fascinating and crucial topic of the 'Scramble for Colonies,' where capitalist nations raced to expand their empires, leading to significant global changes and ultimately impacting the onset of World War I.",
+            "avatar_explanation": {
+              "teaching_style": "storytelling",
+              "total_duration_estimate": "8 minutes",
+              "segments": [
+                {
+                  "segment_id": "seg_001",
+                  "type": "teaching",
+                  "text": "Let's dive into the world of the late 19th century! Imagine a time when capitalist countries were driven by the desire to produce more and more. This drive for excess led to vast expansions, as nations scrambled to secure markets and resources around the globe.",
+                  "emotion": "enthusiastic",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_001",
+                  "type": "flashcard",
+                  "card_title": "The Drive for Resources",
+                  "front": "Picture this: Imagine a company like Apple, which needs to source materials like lithium for batteries. Just like these tech giants scout the globe for suppliers, European countries sought out colonies to secure essential resources. This quest for raw materials played a big role in the scramble for colonies, just like how modern companies strive for resources.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "As you can see in this real-world example, the need for resources drives exploration and, sometimes, exploitation.",
+                  "avatar_emotion": "encouraging"
+                },
+                {
+                  "segment_id": "seg_002",
+                  "type": "teaching",
+                  "text": "With the boom in production, we saw the rise of incredible technological advancements! Railways and steamships improved transportation and communication, enabling European powers to venture into Africa and other parts of the world more efficiently than ever before.",
+                  "emotion": "curious",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_002",
+                  "type": "flashcard",
+                  "card_title": "Transportation Revolution",
+                  "front": "Consider how your local delivery service uses advanced logistics to deliver goods quickly. In the 19th century, similar advances like railroads and steamships allowed European powers to reach colonies faster, expanding their empires. This technological edge had lasting implications for global trade and power dynamics.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "This example shows just how crucial transportation innovations were in facilitating European expansion!",
+                  "avatar_emotion": "thoughtful"
+                },
+                {
+                  "segment_id": "seg_003",
+                  "type": "teaching",
+                  "text": "Now, let’s talk about the rise of monopoly capitalism. By the time we're in the 1870s, we see a shift! Industries began forming alliances with financial systems to maximize profits. The old ways of free trade started to crumble, leading to the birth of trusts in the USA and cartels in Germany.",
+                  "emotion": "playful",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_004",
+                  "type": "teaching",
+                  "text": "Can you imagine being in a game of Monopoly? The aim is to dominate the board, just like the trusts aimed to control entire markets! These organizations sought to regulate prices and supply to increase their power and profits substantially.",
+                  "emotion": "surprised",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_005",
+                  "type": "teaching",
+                  "text": "As we talk about imperialism, we can't overlook the fact that it evolved beyond just simple colonial expansion. Lenin famously stated that 'imperialism is the highest stage of capitalism.' It wasn't just about acquiring land; it was about a total system of militarization and war.",
+                  "emotion": "inspiring",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_006",
+                  "type": "teaching",
+                  "text": "To truly understand the consequences of this scramble for colonies, we must recognize that the quest for resources and dominance led to the outbreak of World War I. The world was set ablaze by the competition and greed that came with imperial ambitions.",
+                  "emotion": "confident",
+                  "visual_aid": null
+                }
+              ]
+            },
+            "faqs": [
+              {
+                "question": "What was the main goal of capitalist countries during the scramble for colonies?",
+                "answer": "The main goal was to secure markets for their surplus goods and to obtain raw materials for their industries."
+              },
+              {
+                "question": "How did technology influence the scramble for colonies?",
+                "answer": "Advancements in transportation and communication, like railways and steamships, allowed European powers to travel more quickly and efficiently to colonize new territories."
+              },
+              {
+                "question": "What is monopoly capitalism?",
+                "answer": "Monopoly capitalism refers to the alliance between industry and finance that led to larger companies controlling markets, resulting in practices like trusts and cartels."
+              }
+            ],
+            "practice_questions": [
+              {
+                "question": "Describe how transportation advancements during the 19th century impacted European imperialism."
+              },
+              {
+                "question": "Explain Lenin's view on the relationship between capitalism and imperialism."
+              },
+              {
+                "question": "Give an example of how a modern company seeks resources like the capitalist countries did in the 19th century."
+              }
+            ],
+            "doubt_context": {
+              "related_sections": [
+                "Causes of WWI",
+                "Effects of Imperialism",
+                "European Powers and Colonial Rivalries"
+              ],
+              "board": "State Board",
+              "class_number": "10",
+              "subject": "social",
+              "unit_number": 1,
+              "section_title": "Scramble for Colonies",
+              "max_rag_chunks": 5,
+              "fallback_to_broader_context": true
+            }
+          }
+        },
+        {
+          "section_title": "Rivalry of Great Powers",
+          "enrichment": {
+            "concept_overview": "In this lesson, we'll explore the rivalry of great powers leading up to World War I, examining the colonization of Africa, the rise of Japan, and the intense competition among nations. This backdrop set the stage for the global conflicts that followed.",
+            "avatar_explanation": {
+              "teaching_style": "storytelling",
+              "total_duration_estimate": "12 minutes",
+              "segments": [
+                {
+                  "segment_id": "seg_001",
+                  "type": "teaching",
+                  "text": "Let's dive into the late 19th century when European powers were actively colonizing lands across the globe. By 1880, most of Asia was already colonized, leaving Africa as the final frontier! Can you imagine how those nations must have felt competing for territory?",
+                  "emotion": "enthusiastic",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_001",
+                  "type": "flashcard",
+                  "card_title": "The Scramble for Africa",
+                  "front": "In the late 1800s, European countries divided Africa amongst themselves. By 1900, nearly all of Africa was under European control! Picture a giant pie being cut into pieces as each country claimed a definitive slice.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Let's think of how nations saw Africa as a giant pie to cut and claim for themselves.",
+                  "avatar_emotion": "encouraging"
+                },
+                {
+                  "segment_id": "seg_002",
+                  "type": "teaching",
+                  "text": "Despite being one of the most powerful nations, England felt threatened by competitors like Germany and the United States. These countries not only produced goods at lower prices but also challenged England's dominance in global markets. Notice how this competition led to tensions!",
+                  "emotion": "thoughtful",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_002",
+                  "type": "flashcard",
+                  "card_title": "Market Competition",
+                  "front": "Imagine you have a lemonade stand and your friend starts selling lemonade for less. Wouldn’t you worry about losing customers? This is similar to how England felt with the rise of Germany and the US in manufacturing.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Think about how competition can create stress, just like it would for a young entrepreneur at a lemonade stand.",
+                  "avatar_emotion": "empathetic"
+                },
+                {
+                  "segment_id": "seg_003",
+                  "type": "teaching",
+                  "text": "Now let's shift our focus to Asia, where Japan was on the rise during the Meiji era. By learning from Western nations, Japan transformed itself into a modern power, ultimately shaking the world by defeating China in 1895. Surprising, right?",
+                  "emotion": "surprised",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_004",
+                  "type": "teaching",
+                  "text": "Japan's victory in the Sino-Japanese War not only stunned global powers but also redefined its status. Japan's ambition led to further actions in Korea and China, further illustrating the dynamics of power. Can you see how Japan wanted to prove its strength?",
+                  "emotion": "curious",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_003",
+                  "type": "flashcard",
+                  "card_title": "Japan's Rise to Power",
+                  "front": "Japan’s transformation demonstrates ambition. Imagine being a small team that trains hard to win against a much bigger opponent in sports. Just like that, Japan trained its military and succeeded against larger forces.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Think of a small team that works really hard and trains to take on a much bigger one—it shows that determination can lead to success!",
+                  "avatar_emotion": "inspiring"
+                },
+                {
+                  "segment_id": "seg_005",
+                  "type": "teaching",
+                  "text": "As Japan's power grew, so did its influence. With control over Korea and ambitions in China, Japan's actions drew the ire of both local and Western powers. This period was about rivalry, ambition, and the quest for dominance, which would set the stage for global conflict.",
+                  "emotion": "warm",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_006",
+                  "type": "teaching",
+                  "text": "Ultimately, the continuous competition, clashing alliances, and ambitions among great powers created a bubbling cauldron that would eventually boil over into World War I. Let's reflect on how rivalry not only shaped nations but also brought about catastrophic events.",
+                  "emotion": "confident",
+                  "visual_aid": null
+                }
+              ]
+            },
+            "faqs": [
+              {
+                "question": "What were the main motivations for countries to colonize Africa?",
+                "answer": "Countries were driven by economic interests, the desire for new markets, and the acquisition of resources."
+              },
+              {
+                "question": "How did Japan's actions impact its relationship with Western powers?",
+                "answer": "Japan's rise upset the balance of power in Asia, leading to tensions with Western countries who felt threatened by its ambitions."
+              },
+              {
+                "question": "What role did competition play in the lead-up to World War I?",
+                "answer": "Intense rivalry among nations created an environment of distrust and aggression, contributing to the conditions that led to the war."
+              }
+            ],
+            "practice_questions": [
+              {
+                "question": "Explain how the industrial revolution influenced European powers' desire to colonize other nations."
+              },
+              {
+                "question": "Describe the significance of the Sino-Japanese War in the context of rising global powers."
+              },
+              {
+                "question": "Discuss the implications of Japan’s strong-arm diplomacy on East Asian politics during this period."
+              }
+            ],
+            "doubt_context": {
+              "related_sections": [
+                "Colonization in Africa",
+                "Rise of Japan in the Meiji era",
+                "Economic competition among great powers"
+              ],
+              "board": "State Board",
+              "class_number": "10",
+              "subject": "social",
+              "unit_number": 1,
+              "section_title": "Rivalry of Great Powers",
+              "max_rag_chunks": 5,
+              "fallback_to_broader_context": true
+            }
+          }
+        },
+        {
+          "section_title": "Causes, Course and Results of World War I",
+          "enrichment": {
+            "concept_overview": "Today, we're diving into the intricate web of alliances, nationalistic fervor, and political machinations that set the stage for World War I and its monumental aftermath. This exploration will not only unveil the causes of the conflict but also illuminate its devastating consequences, helping us understand the monumental shifts that shaped our world.",
+            "avatar_explanation": {
+              "teaching_style": "storytelling",
+              "total_duration_estimate": "15 minutes",
+              "segments": [
+                {
+                  "segment_id": "seg_001",
+                  "type": "teaching",
+                  "text": "Let's start by looking at the alliances that divided Europe into two armed camps. By 1900, we had the Central Powers—Germany, Austria-Hungary, and Italy—forming a strong agreement known as the Triple Alliance in 1882. Notice how the promise of mutual support in times of war added a layer of intimidation to international relations.",
+                  "emotion": "enthusiastic",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_001",
+                  "type": "flashcard",
+                  "card_title": "Example of European Alliances",
+                  "front": "Imagine two rival teams at a school sports competition. Team A (Germany, Austria-Hungary, Italy) forms a solid alliance, promising to support each other in competitions. Meanwhile, Team B (France, Russia, Britain) also bands together for strength, leading to fierce rivalries on and off the field.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "What a fascinating scenario, right? This is similar to how nations teamed up, creating powerful alliances that heightened tensions.",
+                  "avatar_emotion": "encouraging"
+                },
+                {
+                  "segment_id": "seg_002",
+                  "type": "teaching",
+                  "text": "As we move deeper, we encounter the intense nationalism that fueled these rivalries. Each country had its own form of nationalism, sometimes aggressive, like the English jingoism or the German Kultur. This blind patriotism often led to animosity toward other nations! Can you believe how powerful the idea of 'my country right or wrong' was?",
+                  "emotion": "thoughtful",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_002",
+                  "type": "flashcard",
+                  "card_title": "Nationalism Examples",
+                  "front": "Picture a student fiercely defending their school's sports team, treating even friendly rival schools with disdain. This competitive spirit can lead to feelings of superiority and conflict, just like how nationalism spurred tensions amongst European nations.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Isn't it interesting how similar basic human emotions can echo through history? Nationalism was a driving force back then!",
+                  "avatar_emotion": "inspiring"
+                },
+                {
+                  "segment_id": "seg_003",
+                  "type": "teaching",
+                  "text": "Next, we need to examine the role of Kaiser Wilhelm II of Germany, who had grand ambitions for Germany's global leadership. His decision to expand the navy triggered a naval arms race with Britain, increasing tensions significantly. Think about it—how would this military buildup impact relationships?",
+                  "emotion": "curious",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_004",
+                  "type": "teaching",
+                  "text": "France's resentment towards Germany after losing territory in the Franco-Prussian War added fuel to the fire. The bitterness surrounding these losses was palpable, shaping national policies and relationships. Does that remind you of any personal rivalries you might have experienced?",
+                  "emotion": "empathetic",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_003",
+                  "type": "flashcard",
+                  "card_title": "French-German Rivalry",
+                  "front": "Imagine a student losing a championship game to a rival school. That loss not only stings at the moment but can lead to a desire for revenge in future competitions. This reflects the deep-seated animosity that characterized the Franco-German relationship.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "This analogy highlights how personal experiences can mirror broader historical trends. Those rivalries were very real!",
+                  "avatar_emotion": "warm"
+                },
+                {
+                  "segment_id": "seg_005",
+                  "type": "teaching",
+                  "text": "The assassination of Archduke Francis Ferdinand in Sarajevo served as the spark that ignited the powder keg of Europe. This event, intertwined with the tangled alliances, quickly escalated into a full-blown war! It's astounding to think how one action can lead to such widespread conflict.",
+                  "emotion": "surprised",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_006",
+                  "type": "teaching",
+                  "text": "As the war began in 1914, countries lined up on either side, forming two major camps: the Central Powers and the Allies. This division marked the start of a global conflict that brought unprecedented devastation. How do you think this affects our view of alliances today?",
+                  "emotion": "playful",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_007",
+                  "type": "teaching",
+                  "text": "In conclusion, the causes of World War I showcase how deep-rooted alliances, fervent nationalism, and political maneuvering can lead to catastrophic outcomes. Understanding these elements not only helps us appreciate this historical context but also nudges us to consider the importance of diplomacy in our own lives.",
+                  "emotion": "confident",
+                  "visual_aid": null
+                }
+              ]
+            },
+            "faqs": [
+              {
+                "question": "What were the main alliances that led to World War I?",
+                "answer": "The main alliances were the Central Powers, which included Germany, Austria-Hungary, and Italy, and the Allies, which included France, Britain, and Russia, forming the Triple Entente."
+              },
+              {
+                "question": "How did nationalism contribute to the outbreak of WWI?",
+                "answer": "Nationalism fostered extreme patriotism and rivalries among nations, leading countries to support aggressive policies and ultimately pushing them towards war."
+              },
+              {
+                "question": "What role did the assassination of Archduke Ferdinand play in the war?",
+                "answer": "The assassination in June 1914 acted as the catalyst for the war, provoking Austria-Hungary to declare war on Serbia, which triggered the alliances into action."
+              }
+            ],
+            "practice_questions": [
+              {
+                "question": "Explain the significance of the alliances formed in Europe before WWI."
+              },
+              {
+                "question": "Discuss how Imperial power politics in the Balkans contributed to tensions leading to the war."
+              },
+              {
+                "question": "What was the impact of nationalism on the relationships between countries in Europe?"
+              }
+            ],
+            "doubt_context": {
+              "related_sections": [
+                "The Role of Alliance Systems in WWI",
+                "Nationalism and Its Consequences",
+                "The Balkan Wars and Their Impact on Europe"
+              ],
+              "board": "State Board",
+              "class_number": "10",
+              "subject": "social",
+              "unit_number": 1,
+              "section_title": "Causes, Course and Results of World War I",
+              "max_rag_chunks": 5,
+              "fallback_to_broader_context": true
+            }
+          }
+        },
+        {
+          "section_title": "1.4 Russian Revolution and its Impact",
+          "enrichment": {
+            "concept_overview": "Today, we'll explore the Russian Revolution, one of the most significant events in world history that drastically transformed Russia's socio-political landscape. We'll uncover the roots of the revolution, examine key figures and events, and discuss its far-reaching impacts.",
+            "avatar_explanation": {
+              "teaching_style": "storytelling",
+              "total_duration_estimate": "10 minutes",
+              "segments": [
+                {
+                  "segment_id": "seg_001",
+                  "type": "teaching",
+                  "text": "Let's dive into the fascinating topic of the Russian Revolution, shall we? The year 1917 marked a major turning point for Russia and the world, leading to two major revolutions in a single year. The immense losses and suffering from World War I were significant catalysts for these uprisings.",
+                  "emotion": "enthusiastic",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_001",
+                  "type": "flashcard",
+                  "card_title": "What Sparked the Revolution?",
+                  "front": "Imagine being in a classroom where everyone is frustrated because their needs aren't being met. Now, think of Russia in 1917, where soldiers were fighting a war while families faced hunger and loss. This led to the uprising of the working class, as they were tired of the struggle without change.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Let's think about how those frustrations in a classroom relate to the broader struggles in society. Just like students, the people of Russia wanted their voices heard.",
+                  "avatar_emotion": "encouraging"
+                },
+                {
+                  "segment_id": "seg_002",
+                  "type": "teaching",
+                  "text": "Notice how, even before the revolutions, there were significant social causes bubbling under the surface. For instance, although Tsar Alexander II abolished serfdom in 1861, many former serfs found themselves with too little land to survive, which made them ready for change.",
+                  "emotion": "curious",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_002",
+                  "type": "flashcard",
+                  "card_title": "Peasant Life in Russia",
+                  "front": "Picture a large garden where some people have an abundance of fruits while others have just a few seeds. In Russia, many peasants received small plots of land, insufficient to sustain their families, causing widespread poverty and frustration.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "This is similar to how some students might feel in a group project where only a few contribute while others do all the work. Unequal conditions can lead to unrest!",
+                  "avatar_emotion": "thoughtful"
+                },
+                {
+                  "segment_id": "seg_003",
+                  "type": "teaching",
+                  "text": "The autocratic rule of Tsar Nicholas II also contributed to rising tensions. His lack of experience and the negative influence of figures like Rasputin didn't help. Strikes and riots became common as the people's dissatisfaction grew, culminating in events like Bloody Sunday.",
+                  "emotion": "surprised",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_003",
+                  "type": "flashcard",
+                  "card_title": "The Power of Protest",
+                  "front": "Think of a protest march in your neighborhood where people rally for a cause they believe in. In Russia, when workers marched demanding reforms, they faced brutal repression. Their determination, however, was a testament to their suffering and desire for change.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Just as we see in today's world, protests can be powerful expressions of people's needs and desires! It inspires movements for change.",
+                  "avatar_emotion": "inspiring"
+                },
+                {
+                  "segment_id": "seg_004",
+                  "type": "teaching",
+                  "text": "As World War I continued, the monarchy gained temporary strength but faced growing opposition. The Duma, once established to appease the people, was frequently dissolved at the Tsar’s whim when it opposed him. This only fueled the fire of revolution.",
+                  "emotion": "thoughtful",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_005",
+                  "type": "teaching",
+                  "text": "Finally, we reached the climax of this unrest. In March 1917, the people demanded bread and justice. The situation escalated, leading to the abdication of Tsar Nicholas II. Can you imagine the chaos and the excitement of a nation stepping into a new era?",
+                  "emotion": "inspiring",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_006",
+                  "type": "teaching",
+                  "text": "The revolutionary fervor continued well beyond 1917, as ideas were shaped by leaders like Lenin and the rise of the Bolsheviks. Their vision for a communist government drastically altered the trajectory of Russia and influenced the world.",
+                  "emotion": "confident",
+                  "visual_aid": null
+                }
+              ]
+            },
+            "faqs": [
+              {
+                "question": "What were the main causes of the Russian Revolution?",
+                "answer": "The main causes included social inequality, the autocracy of the Tsar, and the impact of World War I."
+              },
+              {
+                "question": "Who was Lenin, and what role did he play?",
+                "answer": "Lenin was a revolutionary leader who guided the Bolsheviks to seize power in the October Revolution, establishing a communist government."
+              },
+              {
+                "question": "What was Bloody Sunday?",
+                "answer": "Bloody Sunday was a massacre in 1905 when peaceful protesters were shot by the Tsar's soldiers, igniting widespread discontent."
+              }
+            ],
+            "practice_questions": [
+              {
+                "question": "Describe the impact of World War I on the Russian Revolution."
+              },
+              {
+                "question": "Explain the significance of the abdication of Tsar Nicholas II."
+              },
+              {
+                "question": "What were the consequences of the Russian Revolution for the rest of the world?"
+              }
+            ],
+            "doubt_context": {
+              "related_sections": [
+                "The Outbreak of World War I",
+                "Social Changes in Russia",
+                "The Rise of Communism"
+              ],
+              "board": "State Board",
+              "class_number": "10",
+              "subject": "social",
+              "unit_number": 1,
+              "section_title": "1.4 Russian Revolution and its Impact",
+              "max_rag_chunks": 5,
+              "fallback_to_broader_context": true
+            }
+          }
+        },
+        {
+          "section_title": "1.5 League of Nations",
+          "enrichment": {
+            "concept_overview": "Today, we're diving into the League of Nations, an important organization established after World War I. We'll explore its structure, objectives, activities, challenges, and ultimately its failures in maintaining peace.",
+            "avatar_explanation": {
+              "teaching_style": "storytelling",
+              "total_duration_estimate": "8 minutes",
+              "segments": [
+                {
+                  "segment_id": "seg_001",
+                  "type": "teaching",
+                  "text": "Welcome, everyone! Let's travel back to 1920, where the League of Nations was formed with the hope of preventing future conflicts. Can you imagine the excitement that filled the air? It was a bold attempt by nations to ensure peace after the devastation of World War I!",
+                  "emotion": "enthusiastic",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_001",
+                  "type": "flashcard",
+                  "card_title": "Flashcard: Structure of the League of Nations",
+                  "front": "Think of the League as a building with five major parts: the Assembly, the Council, the Secretariat, the International Court of Justice, and the International Labour Organisation. Each part plays a unique role! For example, the Assembly represents all member nations. Imagine each country having a voice in a big meeting just like how classes gather to discuss important events.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Let's take a moment to envision how the League was structured, just like our school is organized in different departments!",
+                  "avatar_emotion": "encouraging"
+                },
+                {
+                  "segment_id": "seg_002",
+                  "type": "teaching",
+                  "text": "Now, let's talk about the objectives! The League aimed for peace and international cooperation. It wanted to intervene as a mediator when disputes arose. If the conflict continued, it would resort to economic and military sanctions against the aggressors. Can you see how this would be like a referee stepping in during a heated game?",
+                  "emotion": "curious",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_002",
+                  "type": "flashcard",
+                  "card_title": "Flashcard: Challenges Faced by the League",
+                  "front": "Picture this scenario: It’s like forming a team for a school project, but some important members like the USA, Germany, and Russia are absent. How can you succeed in your project? That's exactly what the League faced! These absences, along with others, made it hard to achieve its goals.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Understanding the challenges of teamwork can help us grasp why the League struggled!",
+                  "avatar_emotion": "thoughtful"
+                },
+                {
+                  "segment_id": "seg_003",
+                  "type": "teaching",
+                  "text": "From 1920 to 1925, the League handled several disputes! For instance, it successfully resolved the sovereignty issue of the Aaland Islands between Sweden and Finland. Think of it as a group project where the right decision needs to be reached for everyone to be satisfied.",
+                  "emotion": "surprised",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_004",
+                  "type": "teaching",
+                  "text": "However, not everything went smoothly. Japan, Germany, and Italy violated the League's rules, illustrating major failures. It’s like when a few classmates refuse to follow the group's decisions, creating confusion — unfortunate, right?",
+                  "emotion": "empathetic",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_003",
+                  "type": "flashcard",
+                  "card_title": "Flashcard: League's Last Days",
+                  "front": "Consider this: It's like a trusty old bicycle that eventually gets too rusty to ride. The League, despite its early successes, became ineffective by the late 1930s, leading to its eventual dissolution in 1946.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Let’s reflect on how things can change over time, just like our once-trusty bicycle that couldn’t serve us anymore!",
+                  "avatar_emotion": "thoughtful"
+                },
+                {
+                  "segment_id": "seg_005",
+                  "type": "teaching",
+                  "text": "In summary, the League of Nations was an ambitious attempt to foster global peace, but it faced major challenges and ultimately fell short. It teaches us that intentions alone are not enough — successful cooperation requires commitment from all parties involved!",
+                  "emotion": "confident",
+                  "visual_aid": null
+                }
+              ]
+            },
+            "faqs": [
+              {
+                "question": "What was the primary purpose of the League of Nations?",
+                "answer": "The League aimed to maintain world peace and promote international cooperation."
+              },
+              {
+                "question": "Who were the permanent members of the League's Council?",
+                "answer": "The permanent members were Britain, France, Italy, Japan, and the United States."
+              },
+              {
+                "question": "What caused the League to fail?",
+                "answer": "Key factors included the absence of major powers and its lack of enforcement capabilities."
+              }
+            ],
+            "practice_questions": [
+              {
+                "question": "What were the main objectives of the League of Nations?"
+              },
+              {
+                "question": "Name two successful interventions made by the League."
+              },
+              {
+                "question": "What challenges did the League face regarding membership?"
+              }
+            ],
+            "doubt_context": {
+              "related_sections": [
+                "Structure and Composition",
+                "Objectives of the League",
+                "Activities of the League",
+                "Causes of Failure"
+              ],
+              "board": "State Board",
+              "class_number": "10",
+              "subject": "social",
+              "unit_number": 1,
+              "section_title": "1.5 League of Nations",
+              "max_rag_chunks": 5,
+              "fallback_to_broader_context": true
+            }
+          }
+        },
+        {
+          "section_title": "SUMMARY",
+          "enrichment": {
+            "concept_overview": "Today, we're diving into the complex and fascinating events leading up to World War I and the significant transformations that followed. We'll explore how various countries positioned themselves, the intricate alliances, and the global impact of these historical moments.",
+            "avatar_explanation": {
+              "teaching_style": "storytelling",
+              "total_duration_estimate": "8 minutes",
+              "segments": [
+                {
+                  "segment_id": "seg_001",
+                  "type": "teaching",
+                  "text": "Let’s start by looking at why World War I broke out. At the time, capitalistic countries were scrambling for colonies to secure raw materials and markets. This competition led to intense clashes among the great powers of Europe, and that set the stage for conflict!",
+                  "emotion": "enthusiastic",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_001",
+                  "type": "flashcard",
+                  "card_title": "The Competition for Colonies",
+                  "front": "Imagine you and your friends are vying for the last slice of pizza at a party. Everyone wants it because it’s delicious and satisfies hunger. Similarly, countries were competing for colonies to secure resources. This struggle created tension among them.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Just like competing for the last slice of pizza can create tension, countries competing for colonies led to major conflicts!",
+                  "avatar_emotion": "encouraging"
+                },
+                {
+                  "segment_id": "seg_002",
+                  "type": "teaching",
+                  "text": "Now, think about Japan, which was rising as an imperial power in Asia. While Europe was focused on each other, Japan was expanding its influence, showcasing the global nature of imperial ambitions during this time.",
+                  "emotion": "curious",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_003",
+                  "type": "teaching",
+                  "text": "With Europe divided into two main camps, it’s essential to understand how alliances formed. Countries banded together to protect their interests, and these alliances created a precarious balance that could lead to war.",
+                  "emotion": "thoughtful",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_002",
+                  "type": "flashcard",
+                  "card_title": "Alliances in Europe",
+                  "front": "Picture a group project in school. If two groups of students form alliances, they might collaborate to achieve better grades. In Europe, nations allied for protection, but it also meant if one went to war, others were pulled in too.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Just like in a group project, alliances meant a single conflict could involve many nations!",
+                  "avatar_emotion": "playful"
+                },
+                {
+                  "segment_id": "seg_004",
+                  "type": "teaching",
+                  "text": "Nationalism played a significant role as well. Many countries, especially Germany and France, were fueled by an aggressive desire to assert their power. France, still nursing wounds from losing Alsace and Lorraine, held hostile sentiments towards Germany.",
+                  "emotion": "empathetic",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_005",
+                  "type": "teaching",
+                  "text": "America's entry into the war was pivotal. Germany's submarine warfare prompted the U.S. to action, and this intervention helped turn the tide in favor of the Allies, leading to their decisive victory.",
+                  "emotion": "confident",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_006",
+                  "type": "teaching",
+                  "text": "After the war, the Paris Peace Conference laid down the terms of the Versailles Treaty. It aimed to prevent future conflicts, but the outcomes were controversial and had lasting impacts.",
+                  "emotion": "inspiring",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_003",
+                  "type": "flashcard",
+                  "card_title": "Versailles Treaty Impact",
+                  "front": "Imagine a classroom where the rules are changed after a big argument between students. Some students feel the new rules are unfair, just like how some countries felt about the harsh terms of the Versailles Treaty, which led to future tensions.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Like a classroom discussion that leaves some feeling unheard, the Treaty created discontent among nations.",
+                  "avatar_emotion": "thoughtful"
+                },
+                {
+                  "segment_id": "seg_007",
+                  "type": "teaching",
+                  "text": "Finally, we must talk about the League of Nations. Established as the first global peace organization, it aimed to foster dialogue and prevent wars. However, its effectiveness was challenged, highlighting the complexity of maintaining peace.",
+                  "emotion": "surprised",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_008",
+                  "type": "teaching",
+                  "text": "In summary, the outbreak of World War I stemmed from a multitude of factors including imperialism, nationalism, and complex alliances. The consequences of this great conflict shaped the world we know today.",
+                  "emotion": "confident",
+                  "visual_aid": null
+                }
+              ]
+            },
+            "faqs": [
+              {
+                "question": "What were the main causes of World War I?",
+                "answer": "The main causes included competition for colonies, rise of nationalism, complex alliances, and militarism."
+              },
+              {
+                "question": "How did America influence the outcome of the war?",
+                "answer": "America's entry brought fresh troops and resources to the Allies, contributing significantly to their victory."
+              },
+              {
+                "question": "What was the League of Nations?",
+                "answer": "The League of Nations was an international organization created after World War I to promote peace and cooperation among countries."
+              }
+            ],
+            "practice_questions": [
+              {
+                "question": "Explain how nationalism contributed to the outbreak of World War I."
+              },
+              {
+                "question": "Discuss the significance of the Versailles Treaty."
+              },
+              {
+                "question": "What role did alliances play in the war's escalation?"
+              }
+            ],
+            "doubt_context": {
+              "related_sections": [
+                "Causes of World War I",
+                "Key Events of World War I",
+                "Impact of World War I"
+              ],
+              "board": "State Board",
+              "class_number": "10",
+              "subject": "social",
+              "unit_number": 1,
+              "section_title": "SUMMARY",
+              "max_rag_chunks": 5,
+              "fallback_to_broader_context": true
+            }
+          }
+        },
+        {
+          "section_title": "GLOSSARY",
+          "enrichment": {
+            "concept_overview": "Today, we're going to explore some key vocabulary terms that helped shape the dramatic events and sentiments during the outbreak of World War I. Understanding these terms will give us a clearer picture of the historical context and the feelings of that time.",
+            "avatar_explanation": {
+              "teaching_style": "storytelling",
+              "total_duration_estimate": "8 minutes",
+              "segments": [
+                {
+                  "segment_id": "seg_001",
+                  "type": "teaching",
+                  "text": "Let's kick off with the term 'monopoly.' A monopoly refers to an exclusive possession or control over a market or resource. Imagine if one company owned all the candy shops in your town! Wouldn't that be dazzling, and maybe a bit unfair? That exclusivity could create a lot of tension.",
+                  "emotion": "enthusiastic",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_001",
+                  "type": "flashcard",
+                  "card_title": "Monopoly in Action",
+                  "front": "Imagine you're the only person allowed to sell lemonade at a big summer festival. You decide the price and can make a lot of money! But what about the other kids who want to sell lemonade too? They can't because of your exclusive control.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Now, isn’t that an interesting perspective on monopolies? Let’s think about how this could spark conflict!",
+                  "avatar_emotion": "encouraging"
+                },
+                {
+                  "segment_id": "seg_002",
+                  "type": "teaching",
+                  "text": "Now, let’s discuss 'devastating.' This word describes something that is highly destructive or damaging. Think about the impact of a massive storm that destroys homes and floods streets. That’s the kind of devastation war brings, affecting countless lives and communities.",
+                  "emotion": "thoughtful",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_002",
+                  "type": "flashcard",
+                  "card_title": "Understanding Devastation",
+                  "front": "Picture a town after a hurricane—it has been torn apart. Houses are damaged, businesses are closed, and families are displaced. This really shows us the concept of devastation in a tangible way.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Can you feel how devastating such an event could be? It’s important to understand the emotional toll as well!",
+                  "avatar_emotion": "empathetic"
+                },
+                {
+                  "segment_id": "seg_003",
+                  "type": "teaching",
+                  "text": "'Jingoism' is next. This term captures the spirit of blind patriotism, especially when countries pursue aggressive foreign policies. Think of it as a nationalistic frenzy. It’s like if your favorite sports team just had to win at all costs, even if it meant playing unfairly.",
+                  "emotion": "curious",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_004",
+                  "type": "teaching",
+                  "text": "Connected to jingoism, we have 'chauvinism.' This term describes extreme patriotism, where love for one’s country becomes more of an obsession. In practice, it can lead to dismissing or even attacking other nations and cultures. Imagine a prideful student who believes their team must always be superior, regardless of the outcome.",
+                  "emotion": "playful",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_005",
+                  "type": "teaching",
+                  "text": "Next, let’s talk about 'kultur.' This is about having a high regard for German civilization and culture, reflecting national pride. Picture someone proudly sharing their favorite folklore and traditions. This sentiment can unify people but also create rifts between different cultures.",
+                  "emotion": "thoughtful",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_006",
+                  "type": "teaching",
+                  "text": "Moving on, 'repulse' means to drive back or fend off. In a military context, it often refers to an effective defense against an attack. Imagine your friend trying to score in basketball, and you successfully block them! That is what repulsing means!",
+                  "emotion": "enthusiastic",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_007",
+                  "type": "teaching",
+                  "text": "On to 'torpedo'—this term refers to attacking or sinking a ship with a torpedo. Think of the feeling of suspense in a movie where a submarine launches a torpedo against an enemy vessel. It’s a tense, impactful moment in warfare.",
+                  "emotion": "inspiring",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_008",
+                  "type": "teaching",
+                  "text": "'Bourgeois' describes qualities associated with the middle class, often reflecting their materialistic values or conventional attitudes. It’s like if you picture a cozy neighborhood where everyone wants to keep up appearances—very relatable!",
+                  "emotion": "warm",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_009",
+                  "type": "teaching",
+                  "text": "Finally, let’s explore 'intelligentsia.' This term refers to the intellectuals or educated people seen as influential in culture and politics. Imagine your favorite teachers or authors who inspire critical thinking and shape ideas in their communities.",
+                  "emotion": "confident",
+                  "visual_aid": null
+                }
+              ]
+            },
+            "faqs": [
+              {
+                "question": "What is the meaning of monopoly?",
+                "answer": "Monopoly means exclusive possession or control over a resource."
+              },
+              {
+                "question": "How can jingoism affect foreign relations?",
+                "answer": "Jingoism can lead to aggressive actions against other nations due to extreme patriotism."
+              },
+              {
+                "question": "What does the term 'devastating' imply?",
+                "answer": "'Devastating' describes something that causes significant destruction or damage."
+              }
+            ],
+            "practice_questions": [
+              {
+                "question": "Can you give an example of monopoly in a modern context?"
+              },
+              {
+                "question": "How might jingoism influence a country's decision to go to war?"
+              },
+              {
+                "question": "Describe a situation that could be considered devastating."
+              }
+            ],
+            "doubt_context": {
+              "related_sections": [
+                "Understanding the Causes of World War I",
+                "Impact of World War I on Society",
+                "Nationalism and its Role in War"
+              ],
+              "board": "State Board",
+              "class_number": "10",
+              "subject": "social",
+              "unit_number": 1,
+              "section_title": "GLOSSARY",
+              "max_rag_chunks": 5,
+              "fallback_to_broader_context": true
+            }
+          }
+        },
+        {
+          "section_title": "Activity",
+          "enrichment": {
+            "concept_overview": "Today, we're going to dive into the geography of World War I. We'll explore where key battles took place and the capital cities of the countries involved! Let's get ready to uncover the maps of history together!",
+            "avatar_explanation": {
+              "teaching_style": "storytelling",
+              "total_duration_estimate": "10 minutes",
+              "segments": [
+                {
+                  "segment_id": "seg_001",
+                  "type": "teaching",
+                  "text": "Let’s embark on an exciting journey through the geography of World War I! Understanding where battles occurred and identifying the capital cities of the involved countries helps us visualize the war's scale and impact.",
+                  "emotion": "enthusiastic",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_001",
+                  "type": "flashcard",
+                  "card_title": "Mapping History",
+                  "front": "Imagine you're using a Google Map to locate famous battlefields like the Somme in France or Verdun. Think of how these places shaped history and are reflected in your geography classes today!",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Here’s a fun way to relate: we can use our maps to connect these historical locations to what we see in the present day!",
+                  "avatar_emotion": "encouraging"
+                },
+                {
+                  "segment_id": "seg_002",
+                  "type": "teaching",
+                  "text": "Now, let’s think about the battles! Each battle site tells a different story – from the trenches of the Western Front to the deserts of Gallipoli. Marking these places on a map can help us understand the strategic choices countries made.",
+                  "emotion": "thoughtful",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_002",
+                  "type": "flashcard",
+                  "card_title": "Battle of the Somme",
+                  "front": "Imagine soldiers from various countries confronting each other in a muddy battlefield during the summer of 1916! This massive battle was one of the largest of WWI and marked a significant moment in history.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Picture this: the struggle at the Somme—it's like a dramatic scene in a movie where courage and sacrifice come alive on the screen!",
+                  "avatar_emotion": "surprised"
+                },
+                {
+                  "segment_id": "seg_003",
+                  "type": "teaching",
+                  "text": "Moving on, we notice how important capital cities are, right? These cities were not just political centers; they were also symbols of national pride and hubs of decision-making. Let’s think about Berlin, Paris, and London during the war.",
+                  "emotion": "curious",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_003",
+                  "type": "flashcard",
+                  "card_title": "Capitals in Conflict",
+                  "front": "Consider how the leaders in capitals like Vienna or St. Petersburg made critical decisions during the war! How might their choices impact the lives of everyday people?",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Think about it: in our own cities, local leaders make choices that affect us—just like during WWI!",
+                  "avatar_emotion": "thoughtful"
+                },
+                {
+                  "segment_id": "seg_004",
+                  "type": "teaching",
+                  "text": "As we gather this information, let’s map it out! Why not start by drawing our own maps highlighting these significant locations? This activity will deepen our understanding of the conflict and its global reach.",
+                  "emotion": "inspiring",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_005",
+                  "type": "teaching",
+                  "text": "Wrapping up, we've explored the geography of World War I thoughtfully. Remember, every battle and capital city has a role in the larger story of the war! Keep this in mind as we continue our journey through history.",
+                  "emotion": "confident",
+                  "visual_aid": null
+                }
+              ]
+            },
+            "faqs": [
+              {
+                "question": "What was the significance of capital cities during World War I?",
+                "answer": "Capital cities were essential for decision-making and represented national power and pride."
+              },
+              {
+                "question": "How can mapping battles help us understand history?",
+                "answer": "Mapping battles allows us to visualize strategies, movements, and the impact of geography on the war."
+              },
+              {
+                "question": "What were some major battles of World War I?",
+                "answer": "Some notable battles include the Battle of the Somme, Verdun, and Gallipoli."
+              }
+            ],
+            "practice_questions": [
+              {
+                "question": "Name one key battle in World War I and its location."
+              },
+              {
+                "question": "Why are capital cities important in the context of a war?"
+              },
+              {
+                "question": "How did geography influence the strategies used in World War I?"
+              }
+            ],
+            "doubt_context": {
+              "related_sections": [
+                "Geography of World War I",
+                "Major Battles of World War I",
+                "Impacts of World War I"
+              ],
+              "board": "State Board",
+              "class_number": "10",
+              "subject": "social",
+              "unit_number": 1,
+              "section_title": "Activity",
+              "max_rag_chunks": 5,
+              "fallback_to_broader_context": true
+            }
+          }
+        },
+        {
+          "section_title": "Map Work",
+          "enrichment": {
+            "concept_overview": "Today, we will embark on an exciting journey through the map work related to the outbreak of World War I. By pinpointing key countries involved in this monumental event, we'll gain a better understanding of their locations and significance!",
+            "avatar_explanation": {
+              "teaching_style": "storytelling",
+              "total_duration_estimate": "8 minutes",
+              "segments": [
+                {
+                  "segment_id": "seg_001",
+                  "type": "teaching",
+                  "text": "Hello, everyone! I'm thrilled to dive into the world map today. We'll explore countries that played pivotal roles during World War I!",
+                  "emotion": "enthusiastic",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_001",
+                  "type": "flashcard",
+                  "card_title": "Understanding Map Markings",
+                  "front": "Imagine you're planning a road trip across Europe! You need to know where each country is to navigate easily. For example, Great Britain is an island nation off the northwestern coast of mainland Europe and has significant historical ties to other countries.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Let’s think about how important it is to know our way around a map when we travel!",
+                  "avatar_emotion": "encouraging"
+                },
+                {
+                  "segment_id": "seg_002",
+                  "type": "teaching",
+                  "text": "Let’s start marking some countries! First on our list is Great Britain. Can anyone tell me where it is located? That’s right, it’s to the northwest of mainland Europe!",
+                  "emotion": "curious",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_002",
+                  "type": "flashcard",
+                  "card_title": "Importance of Germany",
+                  "front": "Picture a chess game where Germany is one of the major pieces in World War I. It is located in Central Europe and is bordered by countries like France and Austria-Hungary. Understanding its position helps us appreciate its strategic importance!",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Germany's location was crucial; it was at the center of many alliances!",
+                  "avatar_emotion": "playful"
+                },
+                {
+                  "segment_id": "seg_003",
+                  "type": "teaching",
+                  "text": "Now, let’s move to France! Can anyone point it out? Perfect! France is southwest of Germany and plays a major role throughout the war, especially in the Western Front.",
+                  "emotion": "thoughtful",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_003",
+                  "type": "flashcard",
+                  "card_title": "Italy's Role",
+                  "front": "Imagine you’re at a dinner party and Italy arrives late yet chooses sides! It initially joined the Allies but switched from the Triple Alliance. Italy is located to the southeast of France, along the Mediterranean Sea.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Italy's diverse role adds to the complexities of the alliances!",
+                  "avatar_emotion": "surprised"
+                },
+                {
+                  "segment_id": "seg_004",
+                  "type": "teaching",
+                  "text": "Next up is Turkey, located on the border of Europe and Asia. This strategic position made it significant for both the Central Powers and the Allies. Who can point it out on our map?",
+                  "emotion": "encouraging",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_005",
+                  "type": "teaching",
+                  "text": "Then we have the Balkan states like Serbia and Bosnia, both pivotal in the spark that ignited the war. These countries are located in southeastern Europe and have intricate historical ties with each other.",
+                  "emotion": "empathetic",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_004",
+                  "type": "flashcard",
+                  "card_title": "Greece and Its Location",
+                  "front": "Think of Greece as an artist's palette at the southeastern tip of Europe! It is rich in culture and history, making it more than just a country on the map. It used its strategic location during the war.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Greece's cultural history intertwines with its geography!",
+                  "avatar_emotion": "warm"
+                },
+                {
+                  "segment_id": "seg_006",
+                  "type": "teaching",
+                  "text": "As we approach the end of our mapping journey, let’s not forget about countries like Bulgaria and Rumania. They played unique roles during the war and are also located in the Balkans, known for their complex alliances.",
+                  "emotion": "confident",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_007",
+                  "type": "teaching",
+                  "text": "Now that we have marked our map, reflecting these countries helps us understand how their historical contexts contributed to the war! Great job today, everyone!",
+                  "emotion": "inspiring",
+                  "visual_aid": null
+                }
+              ]
+            },
+            "faqs": [
+              {
+                "question": "What countries are included in the map work?",
+                "answer": "The countries include Great Britain, Germany, France, Italy, Morocco, Turkey, Serbia, Bosnia, Greece, Austria-Hungary, Bulgaria, and Romania."
+              },
+              {
+                "question": "Why is it important to know these locations?",
+                "answer": "Knowing these locations helps us understand the political and military strategies used during World War I."
+              },
+              {
+                "question": "How can map work help in history lessons?",
+                "answer": "Map work visualizes historical narratives, connecting events and outcomes to geographic locations."
+              }
+            ],
+            "practice_questions": [
+              {
+                "question": "Locate and mark Great Britain and Germany on a blank map."
+              },
+              {
+                "question": "Which country lies between Austria-Hungary and the Mediterranean Sea?"
+              },
+              {
+                "question": "Point out the location of Serbia and Bosnia on a map."
+              }
+            ],
+            "doubt_context": {
+              "related_sections": [
+                "The Causes of World War I",
+                "Key Battles of World War I",
+                "The Aftermath of World War I"
+              ],
+              "board": "State Board",
+              "class_number": "10",
+              "subject": "social",
+              "unit_number": 1,
+              "section_title": "Map Work",
+              "max_rag_chunks": 5,
+              "fallback_to_broader_context": true
+            }
+          }
+        },
+        {
+          "section_title": "REFERENCE BOOKS",
+          "enrichment": {
+            "concept_overview": "Today, we're diving into the important reference books that help us understand the outbreak of World War I and its aftermath. These texts give us rich insights and perspectives into the complex events that shaped the 20th century!",
+            "avatar_explanation": {
+              "teaching_style": "storytelling",
+              "total_duration_estimate": "8 minutes",
+              "segments": [
+                {
+                  "segment_id": "seg_001",
+                  "type": "teaching",
+                  "text": "Let's kick off our lesson by exploring the significance of reference books in understanding history. These texts serve as windows into the past, offering us rich narratives of events and their consequences. Aren't you curious about how authors interpret historical moments?",
+                  "emotion": "enthusiastic",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_001",
+                  "type": "flashcard",
+                  "card_title": "Understanding History Through Reference Books",
+                  "front": "Imagine you're reading a thrilling detective novel. Just like clues lead you to the solution, reference books provide insights that help us piece together the puzzle of history. For instance, if you read about World War I in a book, you might discover how alliances formed and tensions escalated before the war broke out.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "As we look at this flashcard, notice how clues in history help us understand the bigger picture.",
+                  "avatar_emotion": "encouraging"
+                },
+                {
+                  "segment_id": "seg_002",
+                  "type": "teaching",
+                  "text": "Now, let’s talk about some specific references that delve into our topic of World War I. R.D. Cormvell's 'World History in the Twentieth Century' is a great starting point as it gives us an overview of how the century began. This context is foundational for understanding the events that follow.",
+                  "emotion": "warm",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_003",
+                  "type": "teaching",
+                  "text": "Next, we have David Thomson’s 'Europe since Napoleon', which is a treasure trove of information on the period leading up to World War I. Notice how it connects the dots between Napoleon’s era and the dramatic changes in Europe! It allows us to see how history is often a chain of events.",
+                  "emotion": "thoughtful",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_002",
+                  "type": "flashcard",
+                  "card_title": "David Thomson’s Insight",
+                  "front": "Think of Thomson’s book as a bridge connecting two islands of history: Napoleonic Europe and the tensions of World War I. If you're studying for a test, this book can help you understand key concepts like nationalism and imperialism that led to global conflict.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "As we view this card, think about how connecting historical events builds our understanding.",
+                  "avatar_emotion": "inspiring"
+                },
+                {
+                  "segment_id": "seg_004",
+                  "type": "teaching",
+                  "text": "Moving on, Eric Hobsbawm’s 'The Age of Extremes' gives us a gripping account of the extremes of the 20th century, covering both World Wars. Isn't it fascinating how history is marked by extremes? It helps us recognize patterns in human behavior and conflict.",
+                  "emotion": "curious",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "seg_005",
+                  "type": "teaching",
+                  "text": "Finally, we have Hew Strachan’s 'The Oxford Illustrated History of the First World War', which combines captivating illustrations with historical analysis. This combination not only makes history more enjoyable but also allows us to visualize and comprehend complex events in a more engaging way!",
+                  "emotion": "playful",
+                  "visual_aid": null
+                },
+                {
+                  "segment_id": "fc_003",
+                  "type": "flashcard",
+                  "card_title": "Hew Strachan’s Unique Approach",
+                  "front": "Imagine watching a documentary that brings history to life! Strachan’s book functions like that, using illustrations to capture the emotions and realities of World War I. This makes the information stick in our minds and helps us empathize with those who lived through it.",
+                  "front_style": "real_world_example",
+                  "avatar_line": "Checking out this card, consider how visuals can enhance our learning experience about history.",
+                  "avatar_emotion": "empathetic"
+                },
+                {
+                  "segment_id": "seg_006",
+                  "type": "teaching",
+                  "text": "To wrap up, these reference books are not just texts; they're keys to unlocking our understanding of one of the most impactful wars in history. They allow us to grasp where we've come from and how it affects our present and future. Isn’t it empowering to learn from the past?",
+                  "emotion": "confident",
+                  "visual_aid": null
+                }
+              ]
+            },
+            "faqs": [
+              {
+                "question": "Why are reference books important for learning about history?",
+                "answer": "They provide in-depth analysis, context, and multiple perspectives on historical events."
+              },
+              {
+                "question": "How can I choose which reference book to read?",
+                "answer": "Consider the focus of the book; some may cover broader themes, while others delve into specific events."
+              },
+              {
+                "question": "Am I allowed to use reference books in my projects?",
+                "answer": "Absolutely! They can lend credibility and support your arguments with solid evidence."
+              }
+            ],
+            "practice_questions": [
+              {
+                "question": "Name one reference book that discusses World War I."
+              },
+              {
+                "question": "How does understanding the context of history help us today?"
+              },
+              {
+                "question": "Can you list two authors mentioned and their contributions?"
+              }
+            ],
+            "doubt_context": {
+              "related_sections": [
+                "The Causes of World War I",
+                "Significant Battles of World War I",
+                "The Aftermath of World War I"
+              ],
+              "board": "State Board",
+              "class_number": "10",
+              "subject": "social",
+              "unit_number": 1,
+              "section_title": "REFERENCE BOOKS",
+              "max_rag_chunks": 5,
+              "fallback_to_broader_context": true
+            }
+          }
+        }
+      ],
+      "part": "History",
+      "glossary": [],
+      "learning_objectives": [
+        "The race for colonies leading to rivalry and clashes among the great powers of Europe",
+        "Emergence of Japan as the strongest and most aggressive power in East Asia",
+        "Colonialism's impact on Africa",
+        "Causes, course and results of the First World War",
+        "Treaty of Versailles and its provisions",
+        "Causes, course and outcome of the Russian Revolution",
+        "Foundation, functioning and failure of the League of Nations"
+      ],
+      "points_to_remember": [],
+      "supplementary_info": {
+        "wikipedia_summary": "The aftermath of World War I saw far-reaching and wide-ranging cultural, economic, and social change across Europe, Asia, and Africa, and in areas outside those that were directly involved.. Four empires collapsed due to the war, old countries were abolished, new ones were formed, boundaries were redrawn, international organizations were established, and many new and old ideologies took a firm hold in people's minds."
+      }
+    }
+  ]
+}

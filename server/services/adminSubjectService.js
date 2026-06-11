@@ -7,8 +7,32 @@ const { formidable } = require("formidable");
 const axios = require("axios");
 const SubjectUpload = require("../model/SubjectUpload");
 const SubjectUnit = require("../model/SubjectUnit");
-const { logApiStep, logError } = require("../utils/logger");
+// const { logApiStep, logError } = require("../utils/logger");
 
+function formatTimestamp(date = new Date()) {
+  const pad = (value) => String(value).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(
+    date.getHours(),
+  )}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+function emit({ api = "APP", status = "INFO", message, requestId = null }) {
+  const prefix = `[${formatTimestamp()}] [${api}] [${status}]`;
+  const trace = requestId ? ` [${requestId}]` : "";
+  console.log(`${prefix}${trace} ${message}`);
+}
+function logApiStep({ api, status, message, requestId }) {
+  emit({ api, status, message, requestId });
+}
+
+  function logError({ api, message, error, requestId }) {
+  emit({
+    api,
+    status: "ERROR",
+    requestId,
+    message: `${message}${error ? `: ${error.message}` : ""}`,
+  });
+}
 const unlinkAsync = promisify(fs.unlink);
 const PYTHON_REQUEST_TIMEOUT_MS = Number(
   process.env.PYTHON_REQUEST_TIMEOUT_MS || 15 * 60 * 1000,

@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from '../../components/ui/avatar';
 import { useTheme } from '../../hooks/use-theme';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../components/ui/dialog';
 import { Textarea } from '../../components/ui/textarea';
+import FunnyLoader from "../../components/ui/FunnyLoader";
 
 const initialQaItems = [
   {
@@ -30,26 +31,6 @@ const initialQaItems = [
     dislikes: 0,
   },
 ];
-
-const FunnyLoader = () => (
-    <div className="flex flex-col items-center justify-center gap-4">
-        <motion.div
-            animate={{ y: [0, -15, 0] }}
-            transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
-        >
-            <Lightbulb className="h-20 w-20 text-purple-400" />
-        </motion.div>
-        <motion.p 
-            initial={{ opacity: 0.7 }}
-            animate={{ opacity: [0.7, 1, 0.7] }}
-            transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-            className="text-lg font-semibold text-slate-600 dark:text-slate-300"
-        >
-            Searching for cosmic answers...
-        </motion.p>
-    </div>
-);
-
 
 const QAPage = () => {
     const { theme, setTheme } = useTheme();

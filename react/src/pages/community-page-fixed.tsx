@@ -22,18 +22,19 @@ import {
   Heart, MessageCircle, Share2, Trash2, Plus, Search, Filter,
   BookOpen, Trophy, Zap, ArrowLeft, Loader2, Lightbulb, Code,
   BrainCircuit, GraduationCap, XCircle, Vote, ShieldAlert,
-  TrendingUp, Award, Target, Star, BarChart3
-} from "lucide-react";
-import { TrendingTopics } from "../components/TrendingTopics";
-import { useToast } from "../hooks/use-toast";
-import { useTheme } from '../hooks/use-theme';
-import { useNotificationStore } from "../lib/notification-store";
-import { buildApiUrl } from "../lib/apiBase";
-import { queryClient } from "../lib/queryClient";
-import Navigation from "../components/navigation";
-import { useAuth } from "../hooks/use-auth";
+  Target, Star, BarChart3, Award, TrendingUp
+  } from "lucide-react";
+  import { TrendingTopics } from "../components/TrendingTopics";
+  import { useToast } from "../hooks/use-toast";
+  import { useTheme } from '../hooks/use-theme';
+  import { useNotificationStore } from "../lib/notification-store";
+  import { buildApiUrl } from "../lib/apiBase";
+  import { queryClient } from "../lib/queryClient";
+  import Navigation from "../components/navigation";
+  import { useAuth } from "../hooks/use-auth";
+  import FunnyLoader from "../components/ui/FunnyLoader";
 
-const MotionButton = motion(UIButton);
+  const MotionButton = motion(UIButton);
 
 /* ── Dashboard-matched CSS ── */
 const communityStyles = `
@@ -426,16 +427,6 @@ const mockCommunityPolls: CommunityPoll[] = [
     { id: 'o7', text: 'Literature', votes: 10 }, { id: 'o8', text: 'Computer Science', votes: 15 },
   ], totalVotes: 75, userVoted: true, icon: 'XCircle' },
 ];
-
-const FunnyLoader = ({ text = "Loading community..." }) => (
-  <div className="comm-loader">
-    <motion.div animate={{ y: [0,-10,0], rotate:[0,5,-5,0] }} transition={{ duration:2, repeat:Infinity, ease:"easeInOut" }}>
-      <Users style={{ width:56, height:56, color:"#6366f1" }} />
-    </motion.div>
-    <p className="comm-loader-text">{text}</p>
-    <Loader2 style={{ width:24, height:24, color:"#8b5cf6", animation:"spin 1s linear infinite" }} />
-  </div>
-);
 
 interface User { id: number; username: string; firstName: string; lastName: string; email: string; role: string; profileImage?: string; }
 interface Group { id: string; name: string; members: number[]; messages: any[]; }

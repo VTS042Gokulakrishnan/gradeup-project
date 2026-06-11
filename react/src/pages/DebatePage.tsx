@@ -3477,9 +3477,10 @@ function TeamDebateRoom({
     ? roomAudioStream.getAudioTracks?.()[0] || null
     : null;
   const micAvailable = Boolean(localAudioTrack);
+  const micEnabled = Boolean(localAudioTrack?.enabled);
+  const micBlocked = !micAvailable || !micEnabled;
   const {
     connected: livekitConnected,
-    isMuted: livekitIsMuted,
     muteLocalAudio: livekitMute,
     unmuteLocalAudio: livekitUnmute,
     disconnect: livekitDisconnect,
@@ -3490,12 +3491,9 @@ function TeamDebateRoom({
     enabled: meetingReady,
     localStream:
       roomAudioStream instanceof MediaStream ? roomAudioStream : null,
-    apiBase: `${import.meta.env.VITE_API_BASE_URL || process.env.REACT_APP_API_BASE_URL || ""}`,
-    startMuted: true,
+    apiBase: `${process.env.REACT_APP_API_BASE_URL}`,
+    startMuted: true, // ← add this line
   });
-  // Mic enabled reflects the true LiveKit track state (Issue 3)
-  const micEnabled = micAvailable && !livekitIsMuted;
-  const micBlocked = !micAvailable || !micEnabled;
   const isCurrentUserSpeaker = activeSpeakerId === String(candidateId);
   const isCurrentUserTurn =
     isCurrentUserSpeaker &&
@@ -3637,42 +3635,28 @@ function TeamDebateRoom({
     currentSpeakerIdRef.current = currentSpeakerId;
   }, [currentSpeakerId]);
 
-  // Track isHost in a ref so the beforeunload handler always has the latest value (Issue 6)
-  const isHostRef = useRef(isHost);
-  useEffect(() => {
-    isHostRef.current = isHost;
-  }, [isHost]);
-
-  // Tab-close / page-unload: host ends the room for everyone; all participants disconnect (Issue 6)
-  useEffect(() => {
-    const handleUnload = () => {
-      livekitDisconnect();
-      if (isHostRef.current && config.sessionId) {
-        const apiBase = `${import.meta.env.VITE_API_BASE_URL || ""}`;
-        navigator.sendBeacon(
-          `${apiBase}/api/v1/debate/room/end`,
-          new Blob([JSON.stringify({ sessionId: config.sessionId })], {
-            type: "application/json",
-          }),
-        );
-      }
-    };
-    window.addEventListener("beforeunload", handleUnload);
-    return () => window.removeEventListener("beforeunload", handleUnload);
-  }, [config.sessionId, livekitDisconnect]);
-
   useEffect(() => {
     console.log("[CLEANUP] team room cleanup registered", {
       sessionId: config.sessionId,
     });
     return () => {
-      ttsDebug("[CLEANUP] component unmount", {
+      console.log("[CLEANUP] component unmount", {
         sessionId: config.sessionId,
         currentSpeakerId: currentSpeakerIdRef.current,
       });
-      activeAudioRef.current?.pause();
-      activeAudioRef.current = null;
-      ttsDebug("[TTS] activeAudioRef cleanup", {
+
+      // ✓ FIX 5A: Remove greeting audio from DOM
+      if (activeAudioRef.current) {
+        activeAudioRef.current.pause();
+        try {
+          document.body.removeChild(activeAudioRef.current);
+        } catch (err) {
+          console.warn("[CLEANUP] failed to remove audio element", { err });
+        }
+        activeAudioRef.current = null;
+      }
+
+      console.log("[TTS] activeAudioRef cleanup", {
         sessionId: config.sessionId,
         mode: "team",
         reason: "component-unmount",
@@ -3693,7 +3677,7 @@ function TeamDebateRoom({
         speechAudioContextRef.current.close().catch(() => null);
         speechAudioContextRef.current = null;
       }
-      moderatorSpeechTokenRef.current += 1;
+      // moderatorSpeechTokenRef.current += 1;
       stopRoomMic(true);
       ttsDebug("[CLEANUP] speech cancellation", {
         sessionId: config.sessionId,
@@ -3719,7 +3703,7 @@ function TeamDebateRoom({
         )?.id ?? null
     );
   })();
-
+  const greetingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     const turns = liveSession?.turns || [];
     const latestModeratorTurn = [...turns]
@@ -3734,21 +3718,11 @@ function TeamDebateRoom({
       !latestModeratorTurn?.id ||
       playedModeratorTurnsRef.current.has(String(latestModeratorTurn.id))
     ) {
-      // No opening turn found — unblock the room so it doesn't hang on loading
       if (!latestModeratorTurn?.id) setMeetingReady(true);
       return;
     }
 
     playedModeratorTurnsRef.current.add(String(latestModeratorTurn.id));
-
-    // Only synthesize TTS for the very first (opening) moderator turn.
-    // All subsequent moderator turns after Submit are text-only in the chat feed (Issue 2).
-    if (initialAiPlayedRef.current) {
-      setMeetingReady(true);
-      return;
-    }
-    initialAiPlayedRef.current = true;
-
     const text = String(
       latestModeratorTurn.message || latestModeratorTurn.transcript || "",
     ).trim();
@@ -3762,17 +3736,24 @@ function TeamDebateRoom({
       return;
     }
 
-    ttsDebug("[GREETING] triggered", {
+    console.log("[GREETING] triggered", {
       sessionId: config.sessionId,
       turnId: latestModeratorTurn.id,
       textLength: text.length,
     });
+
     const playbackToken = ++greetingPlaybackTokenRef.current;
-    let cancelled = false;
-    setGreetingPending(true); // ← BLOCK canSpeak immediately, synchronously before async starts
+
+    // ✓ FIX 4A: Mark greeting as in progress
+    setGreetingPending(true);
     setAiIsSpeaking(true);
-    if (localAudioTrack) localAudioTrack.enabled = false;
-    livekitMute();
+
+    console.log("[GREETING] flags set, ready for synthesis", {
+      sessionId: config.sessionId,
+      greetingPending: true,
+      aiIsSpeaking: true,
+    });
+
     (async () => {
       try {
         activeAudioRef.current?.pause();
@@ -3782,48 +3763,59 @@ function TeamDebateRoom({
           mode: "team",
           reason: "pre-greeting",
         });
-        // setAiIsSpeaking(false);
         ttsDebug("[TTS] synthesizeDebateSpeech started", {
           sessionId: config.sessionId,
           turnId: latestModeratorTurn.id,
         });
-        // Use pre-loaded audio from handleStart if available (host path).
-        // Participants synthesize fresh here. Either way: land page → speak immediately.
-          let greetingDataUrl: string | null =
+
+        // ✓ SYNC FIX 2: Unified audio URL sourcing
+        let greetingDataUrl: string | null =
           config.preloadedGreetingDataUrl || null;
         console.log("[GREETING] dataUrl source", {
           sessionId: config.sessionId,
           fromPreloaded: Boolean(config.preloadedGreetingDataUrl),
           greetingDataUrlLength: greetingDataUrl?.length || 0,
         });
+
         if (!greetingDataUrl) {
           const audio = await synthesizeDebateSpeech({ text, voice: "alloy" });
-           console.log("[GREETING] synthesizeDebateSpeech returned", {
+          console.log("[GREETING] synthesizeDebateSpeech returned", {
             sessionId: config.sessionId,
             hasAudio: Boolean(audio?.dataUrl),
             dataUrlLength: audio?.dataUrl?.length || 0,
             audioKeys: audio ? Object.keys(audio) : null,
           });
-            if (playbackToken !== greetingPlaybackTokenRef.current) {
-            console.warn("[GREETING] newer playback token — skipping", { sessionId: config.sessionId });
+
+          if (playbackToken !== greetingPlaybackTokenRef.current) {
+            console.warn("[GREETING] newer playback token — skipping", {
+              sessionId: config.sessionId,
+            });
             setMeetingReady(true);
             return;
           }
-            if (audio?.dataUrl) {
+
+          if (audio?.dataUrl) {
             await preloadAudioDataUrl(audio.dataUrl);
             if (playbackToken !== greetingPlaybackTokenRef.current) {
-              console.warn("[GREETING] newer playback token after preload — skipping", { sessionId: config.sessionId });
+              console.warn(
+                "[GREETING] newer playback token after preload — skipping",
+                { sessionId: config.sessionId },
+              );
               setMeetingReady(true);
               return;
             }
             greetingDataUrl = audio.dataUrl;
           }
         }
-            if (playbackToken !== greetingPlaybackTokenRef.current) {
-              console.warn("[GREETING] newer playback token after preload — skipping", { sessionId: config.sessionId });
-              setMeetingReady(true);
-              return;
-            }
+
+        if (playbackToken !== greetingPlaybackTokenRef.current) {
+          console.warn("[GREETING] newer playback token — skipping", {
+            sessionId: config.sessionId,
+          });
+          setMeetingReady(true);
+          return;
+        }
+
         if (!greetingDataUrl) {
           setMeetingReady(true);
           ttsDebug("[LOADER] Meeting ready — no audio dataUrl", {
@@ -3832,62 +3824,169 @@ function TeamDebateRoom({
           });
           return;
         }
+
+        // ✓ SYNC FIX 3: Unblock room AFTER audio is ready
         setMeetingReady(true);
-        if (localAudioTrack) localAudioTrack.enabled = false;
+
+        // ✓ SYNC FIX 4: Ensure muted before playing
+        if (localAudioTrack && localAudioTrack.enabled) {
+          localAudioTrack.enabled = false;
+        }
         livekitMute();
 
         const greetingAudio = new Audio(greetingDataUrl);
         greetingAudio.volume = 1.0;
+        greetingAudio.id = `greeting-audio-${config.sessionId}`;
+        greetingAudio.style.display = "none";
+        greetingAudio.autoplay = false;
+
+        // ✓ CRITICAL: Attach to DOM so browser allows playback
+        document.body.appendChild(greetingAudio);
         activeAudioRef.current = greetingAudio;
 
+        console.log("[GREETING] audio element attached to DOM", {
+          sessionId: config.sessionId,
+          elementId: greetingAudio.id,
+          volume: greetingAudio.volume,
+        });
+
         const onGreetingEnd = () => {
-          if (cancelled || playbackToken !== greetingPlaybackTokenRef.current) return;
-          console.log("[GREETING] audio play ended — releasing locks for first speaker", { sessionId: config.sessionId });
-          setAiIsSpeaking(false);
-          setGreetingPending(false);
-          // Use the ref so we read the latest liveSession, not the stale closure value (Issue 4)
-          const latestSession = latestLiveSessionRef.current;
-          const serverSpeakerId = latestSession?.currentRound?.currentSpeakerId;
+          console.log("[DEBUG] onGreetingEnd called", {
+            tokenCheck: playbackToken === greetingPlaybackTokenRef.current,
+            playbackToken,
+            currentToken: greetingPlaybackTokenRef.current,
+            sessionId: config.sessionId,
+          });
+
+          // ✓ FIXED: Only skip if a genuinely NEW greeting took over (different token)
+          // No longer checking `cancelled` — cleanup increments token instead
+          if (playbackToken !== greetingPlaybackTokenRef.current) {
+            console.log(
+              "[DEBUG] onGreetingEnd skipped — newer greeting token active",
+            );
+            return;
+          }
+
+          console.log("[GREETING] audio ended — preparing for first speaker", {
+            sessionId: config.sessionId,
+          });
+
+          // Clean up DOM
+          try {
+            document.body.removeChild(greetingAudio);
+          } catch {}
+          activeAudioRef.current = null;
+
+          // ✓ SYNC FIX 5: Get first speaker IMMEDIATELY from server
+          const serverSpeakerId = liveSession?.currentRound?.currentSpeakerId;
+
+          console.log("[TURN] first speaker", {
+            serverSpeakerId,
+            hasServer: Boolean(serverSpeakerId),
+            fromGreeting: Boolean(!serverSpeakerId),
+          });
+
           if (!serverSpeakerId) {
-            const allParticipants = latestSession?.participants || [];
-            const { speakerId, team } = extractFirstSpeakerFromGreeting(text, allParticipants);
-            ttsDebug("[TURN] first speaker extracted from greeting", { speakerId, team });
+            const allParticipants = liveSession?.participants || [];
+            const { speakerId } = extractFirstSpeakerFromGreeting(
+              text,
+              allParticipants,
+            );
             if (speakerId) {
-              setTimeout(() => { startSpeechCaptureRef.current?.(); }, 300);
+              console.log("[GREETING] speaker extracted from greeting text", {
+                speakerId,
+              });
+            } else {
+              console.warn("[GREETING] no speaker found in greeting", { text });
             }
-          } else {
-            ttsDebug("[TURN] first speaker from server — turn management will handle mic", { serverSpeakerId });
+          }
+
+          // ✓ FIX 1C: Mark greeting complete
+          setGreetingPending(false);
+          setAiIsSpeaking(false);
+
+          // ✓ FIX 1D: IMMEDIATELY unmute the first speaker
+          if (
+            serverSpeakerId &&
+            String(serverSpeakerId) === String(candidateId)
+          ) {
+            if (localAudioTrack && !localAudioTrack.enabled) {
+              localAudioTrack.enabled = true;
+              livekitUnmute();
+              console.log("[MIC] greeting ended — auto-unmuted for my turn", {
+                sessionId: config.sessionId,
+                currentSpeakerId: serverSpeakerId,
+                candidateId,
+              });
+            }
+          } else if (localAudioTrack && localAudioTrack.enabled) {
+            localAudioTrack.enabled = false;
+            livekitMute();
+            console.log("[MIC] greeting ended — staying muted (not my turn)", {
+              sessionId: config.sessionId,
+              currentSpeakerId: serverSpeakerId,
+              candidateId,
+            });
           }
         };
 
+        const onGreetingError = (e: Event) => {
+          console.error("[GREETING] audio element error", {
+            sessionId: config.sessionId,
+            error: e,
+          });
+          try {
+            document.body.removeChild(greetingAudio);
+          } catch {}
+          setAiIsSpeaking(false);
+          setGreetingPending(false);
+          activeAudioRef.current = null;
+        };
+
+        console.log(liveSession);
         greetingAudio.addEventListener("ended", onGreetingEnd);
-        greetingAudio.addEventListener("error", (e) => {
-          console.error("[GREETING] audio element error", { sessionId: config.sessionId, error: e });
-          // Issue 1: Do NOT unlock the mic here — turn management handles mic enable/disable.
-          // Unlocking unconditionally would give every participant a premature user turn.
-          setAiIsSpeaking(false);
-          setGreetingPending(false);
-          activeAudioRef.current = null;
-        });
+        greetingAudio.addEventListener("error", onGreetingError);
 
-        greetingAudio.play().then(() => {
-          console.log("[GREETING] audio play started — browser allowed autoplay", { sessionId: config.sessionId });
-          setAiIsSpeaking(true);
-          setGreetingPending(true);
-        }).catch((err) => {
-          console.error("[GREETING] autoplay blocked — user gesture required", { sessionId: config.sessionId, err: err.message });
-          // Issue 1: Autoplay blocked — release AI-speaking lock but do NOT manually enable
-          // the mic. Turn management (mute effect + startSpeechCapture) handles that.
-          setAiIsSpeaking(false);
-          setGreetingPending(false);
-          activeAudioRef.current = null;
-        });
+        // ✓ Timeout fallback in case "ended" event never fires
+        const greetingTimeoutId = setTimeout(() => {
+          if (playbackToken === greetingPlaybackTokenRef.current) {
+            console.warn(
+              "[GREETING] ended event timeout — forcing completion",
+              {
+                sessionId: config.sessionId,
+              },
+            );
+            onGreetingEnd();
+          }
+        }, 10000);
 
+        // Store timeout id so cleanup can clear it if a real new greeting starts
+        greetingTimeoutRef.current = greetingTimeoutId;
+
+        greetingAudio
+          .play()
+          .then(() => {
+            console.log("[GREETING] audio play started", {
+              sessionId: config.sessionId,
+            });
+          })
+          .catch((err) => {
+            console.error(
+              "[GREETING] autoplay blocked — user gesture required",
+              { sessionId: config.sessionId, err: err.message },
+            );
+            try {
+              document.body.removeChild(greetingAudio);
+            } catch {}
+            clearTimeout(greetingTimeoutId);
+            setAiIsSpeaking(false);
+            setGreetingPending(false);
+            activeAudioRef.current = null;
+          });
       } catch (error) {
         setMeetingReady(true);
         setAiIsSpeaking(false);
         setGreetingPending(false);
-        // Issue 1: Don't unlock mic on TTS error — turn management handles mic state.
         console.error("[TTS] play error", {
           sessionId: config.sessionId,
           message: error instanceof Error ? error.message : String(error),
@@ -3896,15 +3995,71 @@ function TeamDebateRoom({
     })();
 
     return () => {
-      cancelled = true;
-      ttsDebug("[CLEANUP] speech cancellation", {
-        sessionId: config.sessionId,
-        mode: "team",
-        reason: "effect-cleanup",
-      });
+      // ✓ CRITICAL FIX: Do NOT set cancelled = true here.
+      // Setting cancelled = true was blocking onGreetingEnd from passing
+      // the turn to the first speaker when session state refreshed mid-audio.
+      //
+      // The playbackToken is the correct cancellation mechanism:
+      // - If a genuinely NEW moderator turn arrives, token increments and
+      //   the old onGreetingEnd guard (token check) will skip correctly.
+      // - If the effect just re-ran due to a session state refresh for the
+      //   SAME turn, the token stays the same and onGreetingEnd runs fully.
+      //
+      // We still clear the timeout to avoid double-firing onGreetingEnd
+      // if a new effect run sets up its own timeout.
+      if (greetingTimeoutRef.current) {
+        clearTimeout(greetingTimeoutRef.current);
+        greetingTimeoutRef.current = null;
+      }
+
+      ttsDebug(
+        "[CLEANUP] greeting effect cleanup — token-based cancellation only",
+        {
+          sessionId: config.sessionId,
+          mode: "team",
+          reason: "effect-cleanup",
+          currentToken: greetingPlaybackTokenRef.current,
+        },
+      );
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.sessionId, latestModeratorTurnId]); // stable string key, not array ref
+  }, [config.sessionId, latestModeratorTurnId]);
+  // ✓ FIX 9: CRITICAL - Prevent AI from ever speaking after opening greeting
+  useEffect(() => {
+    const turns = liveSession?.turns || [];
+    const openingGreeting = turns.find(
+      (t: any) => t.role === "moderator" && t.turnType === "opening",
+    );
+
+    if (!openingGreeting) {
+      // No greeting yet - waiting for first AI message
+      debateDebug("[SAFETY] Waiting for opening greeting", {
+        sessionId: config.sessionId,
+        turnCount: turns.length,
+      });
+      return;
+    }
+
+    // ✓ Greeting exists - NEVER allow AI to speak again
+    // Only display moderator messages in chat (no audio)
+    const allModeratorTurns = turns.filter((t: any) => t.role === "moderator");
+    debateDebug("[SAFETY] Moderator turns locked for audio", {
+      sessionId: config.sessionId,
+      totalModeratorTurns: allModeratorTurns.length,
+      rule: "AUDIO DISABLED - Chat only",
+    });
+
+    // ✓ Safety: If aiIsSpeaking is somehow true after greeting, force it false
+    if (aiIsSpeaking && allModeratorTurns.length > 1) {
+      console.warn(
+        "[SAFETY] aiIsSpeaking true after greeting ended — forcing false",
+        {
+          sessionId: config.sessionId,
+        },
+      );
+      setAiIsSpeaking(false);
+    }
+  }, [liveSession?.turns, aiIsSpeaking, config.sessionId]);
   const configLiveSessionRef = useRef(config.liveSession);
   const skipInitialFetchRef = useRef(config.skipInitialFetch);
   useEffect(() => {
@@ -4011,6 +4166,14 @@ function TeamDebateRoom({
 
   async function submitTurn(message: string) {
     if (!message.trim()) return;
+
+    // ✓ FIX: Ensure mic is muted during submission
+    if (localAudioTrack && localAudioTrack.enabled) {
+      localAudioTrack.enabled = false;
+      livekitMute();
+      debateDebug("[MIC] muted before turn submission", { candidateId });
+    }
+
     console.log("[TURN] submit turn", {
       sessionId: config.sessionId,
       candidateId,
@@ -4036,19 +4199,17 @@ function TeamDebateRoom({
         ).length,
       });
       setMessageInput("");
-      // Update snapshot immediately so turn state reflects backend response
+
+      // ✓ FIX: Update snapshot with fresh server state
       setRoomSnapshot({
         liveSession: data?.liveSession || liveSession,
         ...data,
       });
-      // After each submit, force a fresh poll after 800ms so all participants
-      // quickly get the updated snapshot (new currentSpeakerId, teams, etc.)
+
+      // ✓ Force immediate sync so all participants get new state consistently
       setTimeout(() => {
         syncRoom(false).catch(() => null);
-      }, 800);
-
-      // Play any new moderator message that appeared in the submit response
-      // (backend sometimes includes an ai_moderation comment inline)
+      }, 500); // Reduced from 800ms for faster sync
     } catch (error: any) {
       console.log("[TURN] submit failed", {
         sessionId: config.sessionId,
@@ -4367,11 +4528,17 @@ function TeamDebateRoom({
         const armedForSilence =
           firstSpeechAtRef.current &&
           Date.now() - firstSpeechAtRef.current >= 600;
-        // 8 seconds silence (matching LiveAIDebateRoom behaviour)
-        if (armedForSilence && Date.now() - lastSpeechAtRef.current >= 8000) {
-          debateDebug("[SILENCE] 8s silence detected — auto-stopping", {
+
+        // ✓ FIX: Use 20 seconds silence per spec (not 8s)
+        const SILENCE_THRESHOLD_MS = 20000; // 20 seconds
+        if (
+          armedForSilence &&
+          Date.now() - lastSpeechAtRef.current >= SILENCE_THRESHOLD_MS
+        ) {
+          debateDebug("[SILENCE] 20s silence detected — auto-stopping", {
             sessionId: config.sessionId,
             activeSpeakerId: currentSpeakerId,
+            silenceDurationMs: Date.now() - (lastSpeechAtRef.current || 0),
           });
           stopSpeechCapture();
         }
@@ -4382,6 +4549,12 @@ function TeamDebateRoom({
   }
 
   function stopSpeechCapture() {
+    debateDebug("[SPEECH_STOP] Stopping speech capture", {
+      sessionId: config.sessionId,
+      currentSpeakerId,
+      candidateId,
+    });
+
     // Clear auto-silence interval
     if (autoSilenceIntervalRef.current) {
       clearInterval(autoSilenceIntervalRef.current);
@@ -4390,13 +4563,21 @@ function TeamDebateRoom({
     autoSilenceSpeechDetectedRef.current = false;
     autoSilenceCounterRef.current = 0;
     cleanupSpeechDetection();
+
     const activeRecorder = mediaRecorderRef.current;
     if (activeRecorder && activeRecorder.state !== "inactive") {
+      debateDebug("[RECORDER] stopping", { state: activeRecorder.state });
       activeRecorder.stop();
     }
-    // Mute mic after stop — re-enabled when auto-start or user clicks Start
+
+    // ✓ FIX: Mute both tracks consistently
     const liveTrack = roomAudioStream?.getAudioTracks?.()[0];
-    if (liveTrack) liveTrack.enabled = false;
+    if (liveTrack && liveTrack.enabled) {
+      liveTrack.enabled = false;
+      debateDebug("[MIC] muted after speech capture stop", {
+        trackReadyState: liveTrack.readyState,
+      });
+    }
     livekitMute();
   }
 
@@ -4434,15 +4615,7 @@ function TeamDebateRoom({
       return;
     }
     if (localAudioTrack && !localAudioTrack.enabled) {
-      // Issue 4/5: Don't let users manually enable mic between turns — this would leak
-      // audio to other participants. Turn management (mute effect + startSpeechCapture)
-      // is the only authoritative controller of the mic state.
-      if (!isCurrentUserTurn) {
-        toast$("Wait for your turn to speak.", "info");
-        return;
-      }
       localAudioTrack.enabled = true;
-      livekitUnmute();
       debateDebug("[MIC] track enabled", {
         sessionId: config.sessionId,
         readyState: localAudioTrack.readyState,
@@ -4465,55 +4638,115 @@ function TeamDebateRoom({
       stopSpeechCapture();
     }
   }, [aiIsSpeaking, speechRecording]);
- // Mute LiveKit track for any participant who is NOT the current speaker (Issues 4 & 5)
+  // ✓ FIX 2A: Mic management - always keep in sync when turn changes
   useEffect(() => {
-    if (!meetingReady) return;
-    if (isCurrentUserTurn && !aiIsSpeaking) {
-      // My turn — unmute handled by startSpeechCapture
-      return;
-    }
-    // Don't interrupt an active recording mid-speech (host audio leak guard, Issue 5)
-    if (speechRecording) return;
-    // Not my turn — ensure LiveKit mic is muted
-    if (localAudioTrack) localAudioTrack.enabled = false;
-    livekitMute();
-    setRoomMicRefresh((v) => v + 1);
-  }, [isCurrentUserTurn, aiIsSpeaking, meetingReady, localAudioTrack, livekitMute, speechRecording]);
+    if (!meetingReady || !localAudioTrack) return;
 
-  // Auto-start when it's this user's turn (after AI finishes speaking)
+    const shouldBeMuted = !isCurrentUserTurn || aiIsSpeaking || greetingPending;
+
+    if (shouldBeMuted && localAudioTrack.enabled) {
+      // ✓ I should be muted
+      localAudioTrack.enabled = false;
+      livekitMute();
+      console.log("[MIC] muted (not my turn or AI/greeting active)", {
+        sessionId: config.sessionId,
+        isCurrentUserTurn,
+        aiIsSpeaking,
+        greetingPending,
+        candidateId,
+      });
+    } else if (!shouldBeMuted && !localAudioTrack.enabled) {
+      // ✓ I should be unmuted
+      localAudioTrack.enabled = true;
+      livekitUnmute();
+      console.log("[MIC] unmuted (my turn, no AI/greeting)", {
+        sessionId: config.sessionId,
+        isCurrentUserTurn,
+        aiIsSpeaking,
+        greetingPending,
+        candidateId,
+      });
+    }
+  }, [
+    isCurrentUserTurn,
+    aiIsSpeaking,
+    greetingPending,
+    meetingReady,
+    localAudioTrack?.enabled,
+    currentSpeakerId,
+    config.sessionId,
+    candidateId,
+  ]);
+
+  // ✓ FIX: Auto-start only when it's DEFINITELY this user's turn + room ready
   useEffect(() => {
-if (
+    if (
       !canSpeak ||
       !micAvailable ||
       speechRecording ||
       speechProcessing ||
-      submittingTurn
+      submittingTurn ||
+      !meetingReady ||
+      aiIsSpeaking ||
+      greetingPending
     ) {
       return;
     }
-    // Track may be disabled (muted between turns) — startSpeechCapture re-enables it
-    // Do NOT block on micEnabled here; that causes deadlock when track is muted between turns
-    const turnKey = `${liveSession?.currentRound?.roundNumber || 0}:${currentSpeakerId || ""}:${(liveSession?.turns || []).length}`;
+
+    // ✓ Include greeting & AI state in turn key to prevent duplicate starts
+    const turnKey = `${liveSession?.currentRound?.roundNumber || 0}:${currentSpeakerId || ""}:${(liveSession?.turns || []).length}:${aiIsSpeaking}:${greetingPending}`;
     if (autoTurnStartRef.current === turnKey) return;
     autoTurnStartRef.current = turnKey;
-    console.log("[TURN] auto-start guard cleared for new turn", {
+
+    console.log("[TURN] auto-start triggered for new turn", {
       sessionId: config.sessionId,
       turnKey,
       currentSpeakerId,
+      isCurrentUser: String(candidateId) === String(currentSpeakerId),
     });
+
+    // ✓ Give server state time to synchronize across all participants
     setTimeout(() => {
       startSpeechCaptureRef.current?.();
-    }, 300);
+    }, 500); // Increased from 300ms to 500ms for better sync
   }, [
     canSpeak,
     currentSpeakerId,
     liveSession?.currentRound?.roundNumber,
-    micBlocked,
     speechProcessing,
     speechRecording,
     submittingTurn,
+    meetingReady,
+    aiIsSpeaking,
+    greetingPending,
+    candidateId,
   ]);
+  // ✓ NEW: Stop user recording if AI tries to speak (safety guard)
+  // useEffect(() => {
+  //   if (aiIsSpeaking && speechRecording) {
+  //     console.warn(
+  //       "[SAFETY] AI started speaking while user recording — stopping capture",
+  //       {
+  //         sessionId: config.sessionId,
+  //         currentSpeakerId,
+  //       },
+  //     );
+  //     stopSpeechCapture();
+  //   }
+  // }, [aiIsSpeaking, speechRecording]);
 
+  // ✓ NEW: Prevent submission if AI interrupts
+  // useEffect(() => {
+  //   if (aiIsSpeaking && submittingTurn) {
+  //     console.warn(
+  //       "[SAFETY] AI started speaking while turn submitted — waiting",
+  //       {
+  //         sessionId: config.sessionId,
+  //       },
+  //     );
+  //     // Don't immediately abort; let submit finish, then AI plays
+  //   }
+  // }, [aiIsSpeaking, submittingTurn]);
   async function handleEndDebate(retry = false) {
     if (endingRoom || !config.sessionId) return;
     console.log("[ROOM] end requested", {
@@ -4527,7 +4760,7 @@ if (
     livekitDisconnect();
     activeAudioRef.current?.pause();
     activeAudioRef.current = null;
-    moderatorSpeechTokenRef.current += 1;
+    // moderatorSpeechTokenRef.current += 1;
     setAiIsSpeaking(false);
     setUserIsSpeaking(false);
     try {

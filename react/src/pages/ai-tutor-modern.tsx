@@ -103,6 +103,46 @@ import {
 } from "../lib/gradeupApi";
 import { buildApiUrl } from "../lib/apiBase";
 
+// ── Typing Markdown Component ──────────────────────────────────────────────────
+function TypingMarkdown({ content, isLast }: { content: string; isLast: boolean }) {
+  const [displayedContent, setDisplayedContent] = useState(isLast ? "" : content);
+
+  useEffect(() => {
+    if (!isLast) {
+      setDisplayedContent(content);
+      return;
+    }
+    
+    let index = 0;
+    const charsPerTick = Math.max(1, Math.floor(content.length / 50)); 
+    
+    const interval = setInterval(() => {
+      index += charsPerTick;
+      if (index >= content.length) {
+        index = content.length;
+        clearInterval(interval);
+      }
+      setDisplayedContent(content.slice(0, index));
+    }, 20);
+
+    return () => clearInterval(interval);
+  }, [content, isLast]);
+
+  useEffect(() => {
+    if (isLast) {
+      // Use requestAnimationFrame to ensure DOM is fully painted
+      requestAnimationFrame(() => {
+        const scrollEls = document.querySelectorAll('.at-msgs-area');
+        scrollEls.forEach(el => {
+          el.scrollTop = el.scrollHeight + 100; // Adding buffer to ensure bottom
+        });
+      });
+    }
+  }, [displayedContent, isLast]);
+
+  return <FormattedAIContent value={displayedContent} />;
+}
+
 // ── Types ──────────────────────────────────────────────────────────────────
 interface ChatMessage {
   id: string;
@@ -135,13 +175,15 @@ const CSS = `
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   background: #f8fafc;
   height: 100vh;
-  max-height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  width: 100%;
   display: flex;
   flex-direction: column;
   color: #0f172a;
   overflow: hidden;
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+  inset: 0;
 }
 .dark .at-root { background: #0f172a; color: #f1f5f9; }
 
@@ -1404,6 +1446,29 @@ export default function AITutorModern() {
   useEffect(() => {
     if (userHeader?.role) setCurrentRole(userHeader.role);
   } ,[userHeader]);
+
+  useEffect(() => {
+    const { documentElement } = document;
+    const { body } = document;
+    const previousHtmlOverflow = documentElement.style.overflow;
+    const previousHtmlHeight = documentElement.style.height;
+    const previousBodyOverflow = body.style.overflow;
+    const previousBodyHeight = body.style.height;
+
+    documentElement.style.overflow = "hidden";
+    documentElement.style.height = "100%";
+    body.style.overflow = "hidden";
+    body.style.height = "100%";
+    window.scrollTo(0, 0);
+
+    return () => {
+      documentElement.style.overflow = previousHtmlOverflow;
+      documentElement.style.height = previousHtmlHeight;
+      body.style.overflow = previousBodyOverflow;
+      body.style.height = previousBodyHeight;
+    };
+  }, []);
+
   useEffect(() => {
     let ignore = false;
 
@@ -1770,8 +1835,14 @@ export default function AITutorModern() {
   }, [selectedAccent, toast]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    // Scroll both mobile and desktop instances of the chat area
+    requestAnimationFrame(() => {
+      const scrollEls = document.querySelectorAll('.at-msgs-area');
+      scrollEls.forEach(el => {
+        el.scrollTop = el.scrollHeight + 100;
+      });
+    });
+  }, [messages, isLoading]);
 
   const highlightTextSync = useCallback(
     (text: string) => {
@@ -2709,7 +2780,7 @@ const startNewChat = () => {
                   </span>
                 )}
               </div>
-              {selectedUnit && (
+              {selectedUnit && !isMobileOrTablet && (
                 <div className="at-chat-sub">📌 {selectedUnit}</div>
               )}
             </div>
@@ -2731,6 +2802,29 @@ const startNewChat = () => {
             </button>
           </div>
         </div>
+        {/* Mobile Dropdowns inside header */}
+        {isMobileOrTablet && (
+          <div style={{ display: "flex", gap: 8, marginTop: 12, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.2)" }}>
+             <select
+                value={selectedSubject.toString()}
+                onChange={(e) => handleSubjectSelect(parseInt(e.target.value, 10))}
+                disabled={subjectsLoading || subjects.length <= 1}
+                style={{ flex: 1, padding: "6px 8px", borderRadius: 8, border: "none", fontSize: 12, background: "rgba(255,255,255,0.9)", color: "#0f172a", outline: "none", cursor: "pointer" }}
+              >
+                <option value="0">{subjectsLoading ? "Loading..." : "Select Subject"}</option>
+                {subjects.filter(s => s.id !== 0).map(s => <option key={s.id} value={s.id}>{s.emoji} {s.label}</option>)}
+             </select>
+             <select
+                value={selectedUnit}
+                onChange={(e) => handleUnitChange(e.target.value)}
+                disabled={subjectsLoading || !selectedSubject || selectedSubject === 0 || !availableUnits.length}
+                style={{ flex: 1, padding: "6px 8px", borderRadius: 8, border: "none", fontSize: 12, background: "rgba(255,255,255,0.9)", color: "#0f172a", outline: "none", cursor: "pointer" }}
+              >
+                <option value="">{!selectedSubject ? "Subject first" : !availableUnits.length ? "No units" : "Select Unit"}</option>
+                {availableUnits.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
+             </select>
+          </div>
+        )}
       </div>
 
       {/* Error banner — inline, no page reset */}
@@ -2795,7 +2889,7 @@ const startNewChat = () => {
         ) : (
           <>
             <AnimatePresence>
-              {messages.map((message) => (
+              {messages.map((message, index) => (
                 <motion.div
                   key={message.id}
                   className={`at-msg-row${message.type === "user" ? " user" : ""}`}
@@ -2824,6 +2918,8 @@ const startNewChat = () => {
                         isSpeaking &&
                         messages[messages.length - 1]?.id === message.id ? (
                         renderHighlightedText(message.content)
+                      ) : message.type === "assistant" ? (
+                        <TypingMarkdown content={message.content} isLast={index === messages.length - 1} />
                       ) : (
                         <FormattedAIContent value={message.content} />
                       )}
@@ -2839,8 +2935,6 @@ const startNewChat = () => {
                         <button
                           className="at-speak-btn"
                           onClick={() => {
-                            // If this message is currently being spoken — stop it.
-                            // Otherwise start speaking it.
                             if (
                               isSpeaking &&
                               messages[messages.length - 1]?.id === message.id
@@ -3146,7 +3240,7 @@ const startNewChat = () => {
       <style>{CSS}</style>
       <div className="at-root">
         <Navigation currentRole={currentRole} onRoleChange={setCurrentRole} />
-        <AITutorHeader
+        {/* <AITutorHeader
           onAskAI={handleAskAI}
           onExplain={captureSelection}
           onBack={handleBack}
@@ -3156,7 +3250,7 @@ const startNewChat = () => {
               : undefined
           }
           unitLabel={selectedUnit || undefined}
-        />
+        /> */}
 
         <div className="at-layout-wrap">
           {/* Desktop: resizable panels */}

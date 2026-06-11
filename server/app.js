@@ -22,40 +22,15 @@ const DashboardRouter = require("./router/Dashboard");
 const AdminAuthRouter = require("./router/AdminAuth");
 const AdminSubjectRouter = require("./router/AdminSubject");
 const AdminUsersRouter = require("./router/AdminUsers");
-const { logRoutes } = require("./utils/routeLogger");
-const { logRequestSummary } = require("./utils/logger");
+// const { logRoutes } = require("./utils/routeLogger");
+const  secureRequestLogger  = require("./utils/logger");
 const { initializeSubjectUploadQueue } = require("./services/adminSubjectService");
 
 // Allowing only added origins (i.e client side access)
-const allowedOrigins = [process.env.FE_URL,process.env.VITE_API_BASE_URL,process.env.FE_URL_2,"http://192.168.1.36:3000"];
+const allowedOrigins = [process.env.FE_URL,process.env.VITE_API_BASE_URL,process.env.FE_URL_2,"http://192.168.1.35:3000","http://localhost:3000","https://main.d303utafz3zrke.amplifyapp.com"];
 app.use(express.json());
-[
-  ["uploads", "uploads"],
-  ["public", "public"],
-  ["assets", "assets"],
-].forEach(([routeName, folderName]) => {
-  const folderPath = path.join(__dirname, folderName);
-  if (fs.existsSync(folderPath)) {
-    app.use(`/${routeName}`, express.static(folderPath));
-  }
-});
-app.use((req, res, next) => {
-  const startedAt = Date.now();
-  req.requestId = crypto.randomUUID();
 
-  res.on("finish", () => {
-    const durationMs = Date.now() - startedAt;
-    logRequestSummary({
-      requestId: req.requestId,
-      method: req.method,
-      url: req.originalUrl,
-      statusCode: res.statusCode,
-      durationMs,
-    });
-  });
-
-  next();
-});
+app.use(secureRequestLogger);
 
 app.use(
   cors({

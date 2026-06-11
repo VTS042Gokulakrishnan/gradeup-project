@@ -23,7 +23,6 @@ interface UseDebateLivekitOptions {
 interface UseDebateLivekitReturn {
   connected: boolean;
   error: string | null;
-  isMuted: boolean;
   muteLocalAudio: () => void;
   unmuteLocalAudio: () => void;
   disconnect: () => void;
@@ -42,19 +41,31 @@ export function useDebateLivekit({
   const audioElementsRef = useRef<HTMLAudioElement[]>([]);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isMuted, setIsMuted] = useState(startMuted);
 
   const muteLocalAudio = useCallback(() => {
     roomRef.current?.localParticipant?.setMicrophoneEnabled(false);
-    setIsMuted(true);
     console.log("[LIVEKIT] local audio muted");
   }, []);
 
   const unmuteLocalAudio = useCallback(() => {
+    // ✓ FIX 3A: Ensure local track is enabled too
+    try {
+      const audioTrack = localStream?.getAudioTracks?.()[0];
+      if (audioTrack && !audioTrack.enabled) {
+        audioTrack.enabled = true;
+        console.log("[LIVEKIT] local audio track enabled", {
+          trackId: audioTrack.id,
+          readyState: audioTrack.readyState,
+        });
+      }
+    } catch (err) {
+      console.warn("[LIVEKIT] failed to enable local track", { error: err });
+    }
+
+    // ✓ FIX 3B: Also unmute LiveKit
     roomRef.current?.localParticipant?.setMicrophoneEnabled(true);
-    setIsMuted(false);
-    console.log("[LIVEKIT] local audio unmuted");
-  }, []);
+    console.log("[LIVEKIT] LiveKit microphone enabled");
+  }, [localStream]);
 
   // Clean up all audio elements we created
   const cleanupAudioElements = useCallback(() => {
@@ -74,7 +85,8 @@ export function useDebateLivekit({
   }, [cleanupAudioElements]);
 
   useEffect(() => {
-    if (!enabled || !sessionId || !candidateId || !localStream) return;
+  // localStream can be null for listen-only participants — still allow connection
+    if (!enabled || !sessionId || !candidateId) return;
 
     let cancelled = false;
 
@@ -141,9 +153,9 @@ export function useDebateLivekit({
         });
 
         if (!cancelled) {
-          // Publish caller's existing audio track instead of letting Livekit
-          // call getUserMedia() again, which creates a duplicate capture.
-          const audioTrack = localStream.getAudioTracks()[0];
+          // Publish caller's existing audio track if available (host only).
+          // Participants pass localStream=null and skip publishing entirely.
+          const audioTrack = localStream ? localStream.getAudioTracks()[0] : null;
           if (audioTrack) {
             console.log("[LIVEKIT] publishing existing localStream track", {
               sessionId,
@@ -157,6 +169,27 @@ export function useDebateLivekit({
             const livekitTrack = new LocalAudioTrack(audioTrack, undefined, false);
             await room.localParticipant.publishTrack(livekitTrack);
             console.log("[LIVEKIT] track published, startMuted =", startMuted);
+            
+            // Monitor audio track state to ensure mic indicator persists
+            audioTrack.onmute = () => {
+              console.log("[LIVEKIT] audio track muted by browser/OS", { sessionId });
+            };
+            audioTrack.onunmute = () => {
+              console.log("[LIVEKIT] audio track unmuted by browser/OS", { sessionId });
+            };
+            audioTrack.onended = () => {
+              console.log("[LIVEKIT] audio track ended", { sessionId });
+            };
+            
+            // Log final audio track state after publishing
+            setTimeout(() => {
+              console.log("[LIVEKIT] audio track state 200ms post-publish", {
+                sessionId,
+                trackId: audioTrack.id,
+                enabled: audioTrack.enabled,
+                readyState: audioTrack.readyState,
+              });
+            }, 200);
           } else {
             console.warn("[LIVEKIT] no audio track found in localStream", { sessionId });
           }
@@ -181,5 +214,5 @@ export function useDebateLivekit({
     };
   }, [enabled, sessionId, candidateId, localStream]);
 
-  return { connected, error, isMuted, muteLocalAudio, unmuteLocalAudio, disconnect };
+  return { connected, error, muteLocalAudio, unmuteLocalAudio, disconnect };
 }
